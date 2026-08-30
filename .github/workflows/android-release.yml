@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 25
         uses: actions/setup-java@v5
@@ -61,7 +63,7 @@ jobs:
         run: ./gradlew --no-daemon testDebugUnitTest assembleRelease bundleRelease
 
       - name: Prepare named release APK
-        id: release-apk
+        id: release_apk
         shell: bash
         run: |
           version_name="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)"/\1/p' app/build.gradle.kts | head -n 1)"
@@ -83,27 +85,114 @@ jobs:
         with:
           name: duikt-timetable-release-${{ github.sha }}
           path: |
-            ${{ steps.release-apk.outputs.apk_path }}
+            ${{ steps.release_apk.outputs.apk_path }}
             app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
+
+      - name: Prepare Telegram release message
+        env:
+          APK_NAME: ${{ steps.release_apk.outputs.apk_name }}
+          VERSION_NAME: ${{ steps.release_apk.outputs.version_name }}
+          BUILD_DATE: ${{ steps.release_apk.outputs.build_date }}
+          COMMIT_ID: ${{ steps.release_apk.outputs.commit_id }}
+          BEFORE_SHA: ${{ github.event.before || '' }}
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import html
+          import os
+          import subprocess
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          repository_url = f"https://github.com/{repository}"
+          current_sha = os.environ["GITHUB_SHA"]
+          before_sha = os.environ.get("BEFORE_SHA", "").strip()
+          null_sha = "0" * 40
+
+          before_exists = bool(before_sha and before_sha != null_sha) and subprocess.run(
+              ["git", "cat-file", "-e", f"{before_sha}^{{commit}}"],
+              stdout=subprocess.DEVNULL,
+              stderr=subprocess.DEVNULL,
+          ).returncode == 0
+
+          if before_exists:
+              revision = f"{before_sha}..{current_sha}"
+              range_label = f"{before_sha[:7]}…{current_sha[:7]}"
+              range_url = f"{repository_url}/compare/{before_sha}...{current_sha}"
+              max_commits = 20
+              total_commits = int(subprocess.check_output(
+                  ["git", "rev-list", "--count", revision], text=True,
+              ).strip())
+          else:
+              revision = current_sha
+              range_label = current_sha[:7]
+              range_url = f"{repository_url}/commit/{current_sha}"
+              max_commits = 5
+              history_count = int(subprocess.check_output(
+                  ["git", "rev-list", "--count", revision], text=True,
+              ).strip())
+              total_commits = min(history_count, max_commits)
+
+          log = subprocess.check_output(
+              ["git", "log", f"--max-count={max_commits}", "--pretty=format:%h%x1f%H%x1f%s%x1f%an%x1e", revision],
+              text=True,
+          )
+
+          title = f"🚀 DuiktTimetable {os.environ['VERSION_NAME']}"
+          artifact = f"📦 {os.environ['APK_NAME']}"
+          changes = f"🔗 Changes {range_label}"
+          lines = [
+              f"<b>{html.escape(title)}</b>",
+              f"<code>{html.escape(artifact)}</code>",
+              f'<a href="{html.escape(range_url, quote=True)}">{html.escape(changes)}</a>',
+              "",
+              "<b>Commits</b>",
+          ]
+          visible_length = len(title) + len(artifact) + len(changes) + len("Commits") + 5
+          included = 0
+
+          for record in log.split("\x1e"):
+              fields = record.strip().split("\x1f")
+              if len(fields) != 4 or included >= 10:
+                  continue
+              short_sha, full_sha, subject, author = fields
+              visible_line = f"• {short_sha} {subject} — {author}"
+              if visible_length + len(visible_line) + 1 > 900:
+                  break
+              commit_url = f"{repository_url}/commit/{full_sha}"
+              lines.append(
+                  f'• <a href="{html.escape(commit_url, quote=True)}"><code>{html.escape(short_sha)}</code></a> '
+                  f'{html.escape(subject)} — {html.escape(author)}'
+              )
+              visible_length += len(visible_line) + 1
+              included += 1
+
+          omitted = total_commits - included
+          if omitted > 0:
+              lines.append(f"<i>…and {omitted} more</i>")
+          elif included == 0:
+              lines.append("<i>No new commits</i>")
+
+          with open("telegram-caption.html", "w", encoding="utf-8") as caption_file:
+              caption_file.write("\n".join(lines))
+          PY
 
       - name: Send release APK to Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          APK_PATH: ${{ steps.release-apk.outputs.apk_path }}
-          VERSION_NAME: ${{ steps.release-apk.outputs.version_name }}
-          BUILD_DATE: ${{ steps.release-apk.outputs.build_date }}
-          COMMIT_ID: ${{ steps.release-apk.outputs.commit_id }}
+          APK_PATH: ${{ steps.release_apk.outputs.apk_path }}
         run: |
           test -n "$TELEGRAM_BOT_TOKEN"
           test -n "$TELEGRAM_CHAT_ID"
           test -f "$APK_PATH"
+          test -s telegram-caption.html
           curl --fail-with-body --silent --show-error \
             --retry 3 \
             --request POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
             --form "document=@${APK_PATH}" \
-            --form-string "caption=DuiktTimetable ${VERSION_NAME} (${BUILD_DATE}, ${COMMIT_ID})"
+            --form-string "caption=$(<telegram-caption.html)" \
+            --form-string "parse_mode=HTML"
