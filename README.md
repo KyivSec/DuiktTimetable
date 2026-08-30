@@ -47,9 +47,11 @@ Run local unit tests with:
 
 ## Continuous integration
 
-Every push to `main` runs the unit tests and builds signed APK and AAB release artifacts with GitHub Actions. The workflow is also available through **Actions → Android release build → Run workflow**. Successful artifacts are retained for 30 days on the workflow run.
+Every push to `main` runs the unit tests and builds signed APK and AAB release artifacts with GitHub Actions. The workflow is also available through **Actions → Android release build → Run workflow**. Successful artifacts are retained for 30 days on the workflow run. The APK is named `DuiktTimetable-{version}-{dd.mm.yyyy}.apk` using the Kyiv calendar date and is sent to the configured Telegram channel after a successful build.
 
 Release credentials are stored as encrypted GitHub Actions secrets named `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`; signing material is never committed.
+
+Telegram delivery uses the encrypted GitHub Actions secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The bot must be an administrator of the target channel with permission to post messages.
 
 ## Schedule parsing
 

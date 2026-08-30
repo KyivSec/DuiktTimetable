@@ -60,12 +60,46 @@ jobs:
       - name: Test and build signed release
         run: ./gradlew --no-daemon testDebugUnitTest assembleRelease bundleRelease
 
+      - name: Prepare named release APK
+        id: release-apk
+        shell: bash
+        run: |
+          version_name="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)"/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$version_name"
+          build_date="$(TZ=Europe/Kyiv date +'%d.%m.%Y')"
+          apk_name="DuiktTimetable-${version_name}-${build_date}.apk"
+          apk_path="app/build/outputs/apk/release/${apk_name}"
+          cp app/build/outputs/apk/release/app-release.apk "$apk_path"
+          printf 'apk_name=%s\n' "$apk_name" >> "$GITHUB_OUTPUT"
+          printf 'apk_path=%s\n' "$apk_path" >> "$GITHUB_OUTPUT"
+          printf 'version_name=%s\n' "$version_name" >> "$GITHUB_OUTPUT"
+          printf 'build_date=%s\n' "$build_date" >> "$GITHUB_OUTPUT"
+
       - name: Upload signed release artifacts
         uses: actions/upload-artifact@v7
         with:
           name: duikt-timetable-release-${{ github.sha }}
           path: |
-            app/build/outputs/apk/release/app-release.apk
+            ${{ steps.release-apk.outputs.apk_path }}
             app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
+
+      - name: Send release APK to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APK_PATH: ${{ steps.release-apk.outputs.apk_path }}
+          VERSION_NAME: ${{ steps.release-apk.outputs.version_name }}
+          BUILD_DATE: ${{ steps.release-apk.outputs.build_date }}
+        run: |
+          test -n "$TELEGRAM_BOT_TOKEN"
+          test -n "$TELEGRAM_CHAT_ID"
+          test -f "$APK_PATH"
+          curl --fail-with-body --silent --show-error \
+            --retry 3 \
+            --request POST \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
+            --form "document=@${APK_PATH}" \
+            --form-string "caption=DuiktTimetable ${VERSION_NAME} (${BUILD_DATE})"
