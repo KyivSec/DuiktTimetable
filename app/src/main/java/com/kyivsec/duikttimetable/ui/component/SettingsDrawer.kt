@@ -38,12 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.ScheduleSettings
 import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ThemeMode
-import com.kyivsec.duikttimetable.util.UkrainianLocale
+import com.kyivsec.duikttimetable.util.AppLanguage
+import com.kyivsec.duikttimetable.util.LanguageHandler
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -51,39 +54,57 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsDrawer(
     settings: ScheduleSettings, isFullReloading: Boolean, lastRefreshEpochMillis: Long?,
+    selectedLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
+    val locale = LocalConfiguration.current.locales[0]
+    val languageOptions = LanguageHandler.availableLanguages.map { language ->
+        language to when (language) {
+            AppLanguage.SYSTEM -> stringResource(R.string.language_system)
+            AppLanguage.UKRAINIAN -> stringResource(R.string.language_ukrainian)
+            AppLanguage.ENGLISH -> stringResource(R.string.language_english)
+        }
+    }
+    val selectedLanguageOption = languageOptions.first { it.first == selectedLanguage }
     ModalDrawerSheet(Modifier.fillMaxHeight().fillMaxWidth(0.88f)) {
         Column(Modifier.fillMaxHeight()) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
-                Text("Налаштування", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(20.dp))
-                SectionTitle("Вигляд")
-                Text("Тема", style = MaterialTheme.typography.bodyMedium)
-                RadioChoice("Системна", settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
-                RadioChoice("Світла", settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
-                RadioChoice("Темна", settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
+                SectionTitle(stringResource(R.string.appearance))
+                Text(stringResource(R.string.theme), style = MaterialTheme.typography.bodyMedium)
+                RadioChoice(stringResource(R.string.theme_system), settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
+                RadioChoice(stringResource(R.string.theme_light), settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
+                RadioChoice(stringResource(R.string.theme_dark), settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
+                Spacer(Modifier.height(10.dp))
+                DropdownSelector(
+                    label = stringResource(R.string.language),
+                    selected = selectedLanguageOption,
+                    options = languageOptions,
+                    optionLabel = { it.second },
+                    onSelected = { onLanguageChange(it.first) },
+                )
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))
-                SectionTitle("Розклад і навігація")
-                Text("Початковий екран", style = MaterialTheme.typography.bodyMedium)
-                RadioChoice("День", settings.startupMode == ScheduleMode.DAY) { onStartupModeChange(ScheduleMode.DAY) }
-                RadioChoice("Тиждень", settings.startupMode == ScheduleMode.WEEK) { onStartupModeChange(ScheduleMode.WEEK) }
-                Stepper("Попередніх днів", settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
-                Stepper("Попередніх тижнів", settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
+                SectionTitle(stringResource(R.string.schedule_and_navigation))
+                Text(stringResource(R.string.startup_screen), style = MaterialTheme.typography.bodyMedium)
+                RadioChoice(stringResource(R.string.day), settings.startupMode == ScheduleMode.DAY) { onStartupModeChange(ScheduleMode.DAY) }
+                RadioChoice(stringResource(R.string.week), settings.startupMode == ScheduleMode.WEEK) { onStartupModeChange(ScheduleMode.WEEK) }
+                Stepper(stringResource(R.string.previous_days), settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
+                Stepper(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))
-                SectionTitle("Дані")
+                SectionTitle(stringResource(R.string.data))
                 Button(onClick = onFullReload, enabled = !isFullReloading, modifier = Modifier.fillMaxWidth()) {
                     ReloadIcon(isFullReloading)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isFullReloading) "Оновлення…" else "Оновити весь розклад")
+                    Text(if (isFullReloading) stringResource(R.string.reload_in_progress) else stringResource(R.string.reload_all))
                 }
                 Text(
                     lastRefreshEpochMillis?.let {
                         val value = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                        "Останнє повне оновлення: ${value.format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", UkrainianLocale))}"
-                    } ?: "Повне оновлення ще не виконувалося",
+                        stringResource(R.string.last_full_refresh, value.format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", locale)))
+                    } ?: stringResource(R.string.never_fully_refreshed),
                     Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -130,8 +151,8 @@ private const val RepositoryUrl = "https://github.com/KyivSec/DuiktTimetable"
 @Composable private fun Stepper(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        IconButton(onClick = { onChange(value - 1) }, enabled = value > range.first) { Icon(Icons.Rounded.Remove, "Зменшити") }
+        IconButton(onClick = { onChange(value - 1) }, enabled = value > range.first) { Icon(Icons.Rounded.Remove, stringResource(R.string.decrease)) }
         Text(value.toString(), style = MaterialTheme.typography.titleSmall)
-        IconButton(onClick = { onChange(value + 1) }, enabled = value < range.last) { Icon(Icons.Rounded.Add, "Збільшити") }
+        IconButton(onClick = { onChange(value + 1) }, enabled = value < range.last) { Icon(Icons.Rounded.Add, stringResource(R.string.increase)) }
     }
 }

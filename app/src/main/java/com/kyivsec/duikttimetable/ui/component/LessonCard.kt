@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.LessonType
 import com.kyivsec.duikttimetable.ui.theme.ExamAccent
@@ -52,7 +54,7 @@ fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifie
             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(lesson.subject, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text("${lesson.startTime.format(timeFormatter)} – ${lesson.endTime.format(timeFormatter)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val location = listOfNotNull(lesson.room?.let { "ауд. $it" }, lesson.teacher).joinToString(" · ")
+                val location = listOfNotNull(lesson.room?.let { stringResource(R.string.room_short, it) }, lesson.teacher).joinToString(" · ")
                 if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }

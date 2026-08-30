@@ -25,14 +25,16 @@ import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import androidx.test.platform.app.InstrumentationRegistry
 
 class ScheduleComponentsTest {
     @get:Rule val composeRule = createComposeRule()
+    private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test fun modeSelectorChangesMode() {
         var selected by mutableStateOf(ScheduleMode.DAY)
         composeRule.setContent { DuiktTimetableTheme { ScheduleModeSelector(selectedMode = selected, onModeSelected = { selected = it }) } }
-        composeRule.onNodeWithText("Тиждень").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.week)).performClick()
         composeRule.runOnIdle { assert(selected == ScheduleMode.WEEK) }
     }
 
@@ -45,7 +47,7 @@ class ScheduleComponentsTest {
                 WeekDayCard(day, true, expanded, java.time.LocalDateTime.of(2026, 8, 28, 7, 30), { expanded = true }, {})
             }
         }
-        composeRule.onNodeWithText("1 пара").performClick()
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.lesson_count, 1, 1)).performClick()
         composeRule.onNodeWithText("Дуже довга назва предмета для перевірки").assertIsDisplayed()
     }
 
@@ -77,6 +79,6 @@ class ScheduleComponentsTest {
         }
         composeRule.onNodeWithTag("weekPager").performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Тиждень 36", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.week), substring = true).assertIsDisplayed()
     }
 }

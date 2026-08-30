@@ -26,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.ScheduleWeek
 import com.kyivsec.duikttimetable.util.weekRangeText
@@ -41,6 +44,7 @@ fun WeekSchedule(
     state: PagerState? = null,
 ) {
     if (weeks.isEmpty()) return
+    val locale = LocalConfiguration.current.locales[0]
     val selectedIndex = weeks.indexOfFirst { it.startDate == selectedWeek }.coerceAtLeast(0)
     val pagerState = state ?: rememberPagerState(initialPage = selectedIndex) { weeks.size }
     LaunchedEffect(selectedIndex) {
@@ -54,14 +58,14 @@ fun WeekSchedule(
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { weeks.getOrNull(displayedPage - 1)?.let { onWeekSelected(it.startDate) } }, enabled = displayedPage > 0) {
-                Icon(Icons.Rounded.ChevronLeft, "Попередній тиждень")
+                Icon(Icons.Rounded.ChevronLeft, stringResource(R.string.previous_week))
             }
             Text(
-                "${weekRangeText(displayedWeek.startDate, displayedWeek.endDate)} · Тиждень ${displayedWeek.weekNumber}",
+                stringResource(R.string.week_number, weekRangeText(displayedWeek.startDate, displayedWeek.endDate, locale), displayedWeek.weekNumber),
                 Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium,
             )
             IconButton(onClick = { weeks.getOrNull(displayedPage + 1)?.let { onWeekSelected(it.startDate) } }, enabled = displayedPage < weeks.lastIndex) {
-                Icon(Icons.Rounded.ChevronRight, "Наступний тиждень")
+                Icon(Icons.Rounded.ChevronRight, stringResource(R.string.next_week))
             }
         }
         HorizontalPager(

@@ -19,14 +19,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.ScheduleMode
 
 @Composable
 fun ScheduleModeSelector(selectedMode: ScheduleMode, onModeSelected: (ScheduleMode) -> Unit, modifier: Modifier = Modifier) {
     Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
         Row(Modifier.padding(3.dp)) {
-            ModeOption("День", ScheduleMode.DAY, selectedMode, onModeSelected, Modifier.weight(1f))
-            ModeOption("Тиждень", ScheduleMode.WEEK, selectedMode, onModeSelected, Modifier.weight(1f))
+            ModeOption(stringResource(R.string.day), ScheduleMode.DAY, selectedMode, onModeSelected, Modifier.weight(1f))
+            ModeOption(stringResource(R.string.week), ScheduleMode.WEEK, selectedMode, onModeSelected, Modifier.weight(1f))
         }
     }
 }

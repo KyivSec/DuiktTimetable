@@ -33,11 +33,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalConfiguration
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.ScheduleDay
 import com.kyivsec.duikttimetable.util.dayMonth
 import com.kyivsec.duikttimetable.util.fullDayName
-import com.kyivsec.duikttimetable.util.pairCountText
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
@@ -51,6 +54,7 @@ fun WeekDayCard(
     onLessonClick: (Lesson) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -64,14 +68,14 @@ fun WeekDayCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "${day.date.fullDayName()} · ${day.date.dayMonth()}",
+                    "${day.date.fullDayName(locale)} · ${day.date.dayMonth(locale)}",
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
                     color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 )
                 if (day.lessons.isEmpty()) {
-                    Text("Немає пар", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_lessons), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text(pairCountText(day.lessons.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(pluralStringResource(R.plurals.lesson_count, day.lessons.size, day.lessons.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
                     Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, Modifier.size(20.dp))
                 }
@@ -104,7 +108,7 @@ private fun WeekLessonRow(lesson: Lesson, isPast: Boolean, onClick: () -> Unit) 
         Spacer(Modifier.width(10.dp))
         Text("${lesson.startTime.format(weekTimeFormatter)} – ${lesson.endTime.format(weekTimeFormatter)}", Modifier.width(98.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(lesson.subject, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        lesson.room?.let { Text("ауд. $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+        lesson.room?.let { Text(stringResource(R.string.room_short, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
     }
 }
 

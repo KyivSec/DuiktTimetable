@@ -42,6 +42,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.kyivsec.duikttimetable.R
+import com.kyivsec.duikttimetable.util.LanguageHandler
 import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ScheduleUiState
 import com.kyivsec.duikttimetable.ui.component.DaySchedule
@@ -58,10 +62,15 @@ import java.time.LocalDateTime
 
 @Composable
 fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
+    val context = LocalContext.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var showGroupSheet by remember { mutableStateOf(false) }
+    val localizedError = state.errorMessage?.let { message ->
+        message.numberArgument?.let { stringResource(message.resourceId, it) }
+            ?: stringResource(message.resourceId)
+    }
 
     LaunchedEffect(state.needsGroupSelection) {
         if (state.needsGroupSelection) {
@@ -70,9 +79,9 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
         }
     }
 
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+    LaunchedEffect(localizedError) {
+        localizedError?.let { text ->
+            snackbarHostState.showSnackbar(text)
             viewModel.dismissError()
         }
     }
@@ -85,6 +94,8 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 settings = state.settings,
                 isFullReloading = state.isFullReloading,
                 lastRefreshEpochMillis = state.lastFullRefreshEpochMillis,
+                selectedLanguage = LanguageHandler.selectedLanguage(context),
+                onLanguageChange = { language -> LanguageHandler.setLanguageAndRecreate(context, language) },
                 onThemeChange = viewModel::updateTheme,
                 onStartupModeChange = viewModel::updateStartupMode,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
@@ -103,7 +114,7 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             ) {
                 Surface(color = MaterialTheme.colorScheme.background, tonalElevation = 1.dp) {
                     TopScheduleBar(
-                        groupName = state.selectedGroup?.name ?: "Оберіть групу",
+                        groupName = state.selectedGroup?.name ?: stringResource(R.string.select_group),
                         isRefreshing = state.isRefreshing,
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onGroupClick = { viewModel.startGroupSelection(); showGroupSheet = true },
@@ -167,7 +178,7 @@ private fun BoxScope.TodayAction(visible: Boolean, onClick: () -> Unit) {
         enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.9f),
         exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.9f),
     ) {
-        ExtendedFloatingActionButton(onClick = onClick, icon = { Icon(Icons.Rounded.Today, null) }, text = { Text("Сьогодні") })
+        ExtendedFloatingActionButton(onClick = onClick, icon = { Icon(Icons.Rounded.Today, null) }, text = { Text(stringResource(R.string.today)) })
     }
 }
 
@@ -209,8 +220,8 @@ private fun ScheduleContent(state: ScheduleUiState, now: LocalDateTime, viewMode
 private fun EmptySchedule(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Розклад недоступний", style = MaterialTheme.typography.titleMedium)
-            androidx.compose.material3.TextButton(onClick = onRetry) { Text("Спробувати ще") }
+            Text(stringResource(R.string.schedule_unavailable), style = MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.TextButton(onClick = onRetry) { Text(stringResource(R.string.try_again)) }
         }
     }
 }

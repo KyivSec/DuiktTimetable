@@ -28,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.LessonType
 import java.time.format.DateTimeFormatter
@@ -40,21 +43,21 @@ fun LessonDetailsSheet(lesson: Lesson, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
             Text(lesson.subject, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Text(lesson.type.ukrainianName(), color = lesson.type.accentColor(), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(lesson.type.nameResource()), color = lesson.type.accentColor(), style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(16.dp))
             HorizontalDivider()
-            DetailRow(Icons.Rounded.AccessTime, "Час", "${lesson.startTime.format(timeFormatter)} – ${lesson.endTime.format(timeFormatter)}")
-            lesson.room?.let { DetailRow(Icons.Rounded.MeetingRoom, "Аудиторія", it) }
-            lesson.building?.let { DetailRow(Icons.Rounded.Business, "Корпус", it) }
-            lesson.teacher?.let { DetailRow(Icons.Rounded.Person, "Викладач", it) }
-            lesson.subgroup?.let { DetailRow(Icons.Rounded.Groups, "Підгрупа", it) }
-            lesson.sourceGroups?.let { DetailRow(Icons.Rounded.Groups, "Групи", it) }
-            lesson.rawType?.let { DetailRow(Icons.Rounded.Info, "Тип у джерелі", it) }
-            lesson.chairName?.let { DetailRow(Icons.Rounded.Business, "Кафедра", it) }
-            lesson.notes?.let { DetailRow(Icons.Rounded.Info, "Примітка", it) }
-            lesson.onlineUrl?.let { DetailRow(Icons.Rounded.Link, "Онлайн-посилання", it) }
+            DetailRow(Icons.Rounded.AccessTime, stringResource(R.string.detail_time), "${lesson.startTime.format(timeFormatter)} – ${lesson.endTime.format(timeFormatter)}")
+            lesson.room?.let { DetailRow(Icons.Rounded.MeetingRoom, stringResource(R.string.detail_room), it) }
+            lesson.building?.let { DetailRow(Icons.Rounded.Business, stringResource(R.string.detail_building), it) }
+            lesson.teacher?.let { DetailRow(Icons.Rounded.Person, stringResource(R.string.detail_teacher), it) }
+            lesson.subgroup?.let { DetailRow(Icons.Rounded.Groups, stringResource(R.string.detail_subgroup), it) }
+            lesson.sourceGroups?.let { DetailRow(Icons.Rounded.Groups, stringResource(R.string.detail_groups), it) }
+            lesson.rawType?.let { DetailRow(Icons.Rounded.Info, stringResource(R.string.detail_source_type), it) }
+            lesson.chairName?.let { DetailRow(Icons.Rounded.Business, stringResource(R.string.detail_chair), it) }
+            lesson.notes?.let { DetailRow(Icons.Rounded.Info, stringResource(R.string.detail_note), it) }
+            lesson.onlineUrl?.let { DetailRow(Icons.Rounded.Link, stringResource(R.string.detail_online_link), it) }
             lesson.sourceUpdatedAt?.let {
-                DetailRow(Icons.Rounded.Info, "Оновлено у джерелі", sourceUpdatedFormatter.format(it.atZone(ZoneId.systemDefault())))
+                DetailRow(Icons.Rounded.Info, stringResource(R.string.detail_source_updated), sourceUpdatedFormatter.format(it.atZone(ZoneId.systemDefault())))
             }
         }
     }
@@ -74,11 +77,12 @@ private fun DetailRow(icon: ImageVector, label: String, value: String) {
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val sourceUpdatedFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
 
-fun LessonType.ukrainianName(): String = when (this) {
-    LessonType.LECTURE -> "Лекція"
-    LessonType.PRACTICE -> "Практична робота"
-    LessonType.LAB -> "Лабораторна робота"
-    LessonType.SEMINAR -> "Семінар"
-    LessonType.EXAM -> "Іспит"
-    LessonType.OTHER -> "Інше"
+@StringRes
+fun LessonType.nameResource(): Int = when (this) {
+    LessonType.LECTURE -> R.string.lesson_type_lecture
+    LessonType.PRACTICE -> R.string.lesson_type_practice
+    LessonType.LAB -> R.string.lesson_type_lab
+    LessonType.SEMINAR -> R.string.lesson_type_seminar
+    LessonType.EXAM -> R.string.lesson_type_exam
+    LessonType.OTHER -> R.string.lesson_type_other
 }

@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.ScheduleDay
 import java.time.LocalDateTime
@@ -37,7 +39,7 @@ private val TimelineTopPadding = 16.dp
 fun Timeline(day: ScheduleDay, now: LocalDateTime, onLessonClick: (Lesson) -> Unit, modifier: Modifier = Modifier) {
     if (day.lessons.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Немає пар", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_lessons), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }

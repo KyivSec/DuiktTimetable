@@ -20,30 +20,30 @@ class ScheduleScreenInteractionTest {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("ПД-31").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Тиждень").performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.week)).performClick()
         composeRule.waitForIdle()
         captureScreen("week-verification.png")
         composeRule.onNodeWithText("Проєктний практикум").assertIsDisplayed().performClick()
-        composeRule.onNodeWithText("Практична робота").assertIsDisplayed()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.lesson_type_practice)).assertIsDisplayed()
     }
 
     @Test fun groupSelectorWorks() {
         composeRule.waitUntil(timeoutMillis = 5_000) { composeRule.onAllNodesWithText("ПД-31").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText("ПД-31").performClick()
-        composeRule.onNodeWithText("Оберіть групу").assertIsDisplayed()
-        composeRule.onNodeWithText("Інститут").assertIsDisplayed()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.select_group)).assertIsDisplayed()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.institute)).assertIsDisplayed()
         composeRule.onNodeWithText("ННІ Інформаційних технологій").performClick()
         composeRule.onNodeWithText("ННІ Кібербезпеки").performClick()
         composeRule.onNodeWithText("БКС-21").assertIsDisplayed()
-        composeRule.onNodeWithText("Скасувати").performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.cancel)).performClick()
     }
 
     @Test fun settingsDrawerWorks() {
         composeRule.waitUntil(timeoutMillis = 5_000) { composeRule.onAllNodesWithText("ПД-31").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithContentDescription("Відкрити налаштування").performClick()
-        composeRule.onNodeWithText("Налаштування").assertIsDisplayed()
-        composeRule.onNodeWithText("Оновити весь розклад").assertIsDisplayed().performClick()
-        composeRule.onNodeWithText("Оновлення…").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(composeRule.activity.getString(R.string.open_settings)).performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.settings)).assertIsDisplayed()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.reload_all)).assertIsDisplayed().performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.reload_in_progress)).assertIsDisplayed()
         captureScreen("settings-reload-verification.png")
     }
 

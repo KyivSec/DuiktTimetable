@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kyivsec.duikttimetable.R
 
 @Composable
 fun TopScheduleBar(
@@ -44,20 +46,20 @@ fun TopScheduleBar(
         modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onMenuClick) { Icon(Icons.Rounded.Menu, contentDescription = "Відкрити налаштування") }
+        IconButton(onClick = onMenuClick) { Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_settings)) }
         Spacer(Modifier.width(4.dp))
         Column(
             modifier = Modifier.weight(1f).clickable(onClick = onGroupClick).padding(vertical = 2.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("Розклад", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.schedule), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(groupName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         IconButton(onClick = onRefreshClick, enabled = !isRefreshing) {
-            if (isRefreshing) SpinningTopRefreshIcon() else Icon(Icons.Rounded.Refresh, contentDescription = "Оновити")
+            if (isRefreshing) SpinningTopRefreshIcon() else Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.refresh))
         }
     }
 }
@@ -71,5 +73,5 @@ private fun SpinningTopRefreshIcon() {
         animationSpec = infiniteRepeatable(tween(650, easing = LinearEasing), RepeatMode.Restart),
         label = "refreshRotation",
     )
-    Icon(Icons.Rounded.Refresh, contentDescription = "Оновлення", modifier = Modifier.rotate(rotation))
+    Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.refreshing), modifier = Modifier.rotate(rotation))
 }

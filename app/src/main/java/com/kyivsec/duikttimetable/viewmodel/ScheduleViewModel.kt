@@ -17,6 +17,8 @@ import com.kyivsec.duikttimetable.model.ScheduleSettings
 import com.kyivsec.duikttimetable.model.ScheduleUiState
 import com.kyivsec.duikttimetable.model.ScheduleWeek
 import com.kyivsec.duikttimetable.model.ThemeMode
+import com.kyivsec.duikttimetable.model.UiMessage
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.util.weekStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -208,7 +210,7 @@ class ScheduleViewModel(
         loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val preferences = runCatching { preferencesRepository.load() }.getOrElse {
-                _uiState.update { state -> state.copy(isLoading = false, errorMessage = "Не вдалося прочитати налаштування") }
+                _uiState.update { state -> state.copy(isLoading = false, errorMessage = UiMessage(R.string.error_read_settings)) }
                 return@launch
             }
             _uiState.update { it.copy(
@@ -237,7 +239,7 @@ class ScheduleViewModel(
             val selected = groups.firstOrNull { it.id == preferences.selectedGroupId }
                 ?: groups.firstOrNull { it.name == preferences.selectedGroupName }
             if (selected == null) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Не вдалося завантажити список груп") }
+                _uiState.update { it.copy(isLoading = false, errorMessage = UiMessage(R.string.error_load_groups)) }
                 return@launch
             }
             preferencesRepository.saveSelectedGroup(selected)
@@ -388,12 +390,12 @@ class ScheduleViewModel(
         if (result is SyncResult.Failure && (!initial || !result.hasCachedData)) showError(result.error)
     }
     private fun showError(error: DataError) = _uiState.update { it.copy(errorMessage = when (error) {
-        DataError.Offline -> "Немає з’єднання. Показано збережений розклад"
-        DataError.Timeout -> "Сервер розкладу не відповідає"
-        is DataError.Http -> "Сервер повернув помилку ${error.code}"
-        DataError.RejectedSession -> "Сесію розкладу відхилено. Спробуйте ще раз"
-        is DataError.SourceFormat -> "Формат розкладу змінився"
-        is DataError.Database -> "Не вдалося зберегти розклад"
+        DataError.Offline -> UiMessage(R.string.error_offline)
+        DataError.Timeout -> UiMessage(R.string.error_timeout)
+        is DataError.Http -> UiMessage(R.string.error_http, error.code)
+        DataError.RejectedSession -> UiMessage(R.string.error_rejected_session)
+        is DataError.SourceFormat -> UiMessage(R.string.error_source_format)
+        is DataError.Database -> UiMessage(R.string.error_database)
     }) }
 
     private fun closestAvailableDate(date: LocalDate, values: List<LocalDate>): LocalDate =

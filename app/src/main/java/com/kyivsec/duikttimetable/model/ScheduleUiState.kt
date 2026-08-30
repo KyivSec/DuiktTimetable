@@ -1,12 +1,13 @@
 package com.kyivsec.duikttimetable.model
 
 import androidx.compose.runtime.Immutable
+import androidx.annotation.StringRes
 import java.time.LocalDate
 
 @Immutable
 data class ScheduleUiState(
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
+    val errorMessage: UiMessage? = null,
     val selectedMode: ScheduleMode = ScheduleMode.DAY,
     val selectedDate: LocalDate = LocalDate.now(),
     val selectedWeek: LocalDate = LocalDate.now(),
@@ -28,3 +29,6 @@ data class ScheduleUiState(
     val settings: ScheduleSettings = ScheduleSettings(),
     val lastFullRefreshEpochMillis: Long? = null,
 )
+
+@Immutable
+data class UiMessage(@param:StringRes val resourceId: Int, val numberArgument: Int? = null)

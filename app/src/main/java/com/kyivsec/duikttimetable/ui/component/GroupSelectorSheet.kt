@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.Institute
 
@@ -40,17 +42,17 @@ fun GroupSelectorSheet(
     val institute = institutes.firstOrNull { it.id == draftInstituteId }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Оберіть групу", style = MaterialTheme.typography.headlineSmall)
-            DropdownSelector("Інститут", institute, institutes, { it.name }, { onInstituteSelected(it.id) })
+            Text(stringResource(R.string.select_group), style = MaterialTheme.typography.headlineSmall)
+            DropdownSelector(stringResource(R.string.institute), institute, institutes, { it.name }, { onInstituteSelected(it.id) })
             LoadingDropdownRow(isCoursesLoading) {
-                DropdownSelector("Курс", draftCourse, courses, Int::toString, onCourseSelected)
+                DropdownSelector(stringResource(R.string.course), draftCourse, courses, Int::toString, onCourseSelected)
             }
             LoadingDropdownRow(isGroupsLoading) {
-                DropdownSelector("Група", draftGroup, groups, { it.name }, onGroupSelected)
+                DropdownSelector(stringResource(R.string.group), draftGroup, groups, { it.name }, onGroupSelected)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Скасувати") }
-                Button(onClick = { draftGroup?.let(onApply) }, enabled = draftGroup != null && !isGroupsLoading, modifier = Modifier.weight(1f)) { Text("Застосувати") }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
+                Button(onClick = { draftGroup?.let(onApply) }, enabled = draftGroup != null && !isGroupsLoading, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.apply)) }
             }
         }
     }

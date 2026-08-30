@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalConfiguration
 import com.kyivsec.duikttimetable.util.shortDayName
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -43,6 +44,7 @@ fun DaySelector(
     modifier: Modifier = Modifier,
     state: LazyListState? = null,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
     val listState = state ?: rememberLazyListState()
     val selectedIndex = dates.indexOf(selectedDate).coerceAtLeast(0)
     var hasPositioned by remember { mutableStateOf(false) }
@@ -79,7 +81,7 @@ fun DaySelector(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(date.shortDayName(), style = MaterialTheme.typography.labelMedium, color = content)
+                    Text(date.shortDayName(locale), style = MaterialTheme.typography.labelMedium, color = content)
                     Text(
                         date.format(DayMonthFormatter), style = MaterialTheme.typography.titleSmall, color = content,
                         fontWeight = if (selected || date == today) FontWeight.Bold else FontWeight.Normal,
