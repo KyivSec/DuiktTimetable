@@ -67,13 +67,16 @@ jobs:
           version_name="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)"/\1/p' app/build.gradle.kts | head -n 1)"
           test -n "$version_name"
           build_date="$(TZ=Europe/Kyiv date +'%d.%m.%Y')"
-          apk_name="DuiktTimetable-${version_name}-${build_date}.apk"
+          commit_id="${GITHUB_SHA:0:7}"
+          test -n "$commit_id"
+          apk_name="DuiktTimetable-${version_name}-${build_date}-${commit_id}.apk"
           apk_path="app/build/outputs/apk/release/${apk_name}"
           cp app/build/outputs/apk/release/app-release.apk "$apk_path"
           printf 'apk_name=%s\n' "$apk_name" >> "$GITHUB_OUTPUT"
           printf 'apk_path=%s\n' "$apk_path" >> "$GITHUB_OUTPUT"
           printf 'version_name=%s\n' "$version_name" >> "$GITHUB_OUTPUT"
           printf 'build_date=%s\n' "$build_date" >> "$GITHUB_OUTPUT"
+          printf 'commit_id=%s\n' "$commit_id" >> "$GITHUB_OUTPUT"
 
       - name: Upload signed release artifacts
         uses: actions/upload-artifact@v7
@@ -92,6 +95,7 @@ jobs:
           APK_PATH: ${{ steps.release-apk.outputs.apk_path }}
           VERSION_NAME: ${{ steps.release-apk.outputs.version_name }}
           BUILD_DATE: ${{ steps.release-apk.outputs.build_date }}
+          COMMIT_ID: ${{ steps.release-apk.outputs.commit_id }}
         run: |
           test -n "$TELEGRAM_BOT_TOKEN"
           test -n "$TELEGRAM_CHAT_ID"
@@ -102,4 +106,4 @@ jobs:
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
             --form "document=@${APK_PATH}" \
-            --form-string "caption=DuiktTimetable ${VERSION_NAME} (${BUILD_DATE})"
+            --form-string "caption=DuiktTimetable ${VERSION_NAME} (${BUILD_DATE}, ${COMMIT_ID})"
