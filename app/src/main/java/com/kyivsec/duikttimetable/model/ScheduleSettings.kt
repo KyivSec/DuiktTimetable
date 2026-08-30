@@ -8,6 +8,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 @Immutable
 data class ScheduleSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val startupMode: ScheduleMode = ScheduleMode.DAY,
     val previousDaysToKeep: Int = 14,
     val previousWeeksToKeep: Int = 4,
 )

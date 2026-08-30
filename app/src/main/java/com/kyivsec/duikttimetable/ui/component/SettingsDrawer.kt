@@ -41,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.ScheduleSettings
+import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ThemeMode
 import com.kyivsec.duikttimetable.util.UkrainianLocale
 import java.time.Instant
@@ -50,7 +51,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsDrawer(
     settings: ScheduleSettings, isFullReloading: Boolean, lastRefreshEpochMillis: Long?,
-    onThemeChange: (ThemeMode) -> Unit,
+    onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -66,6 +67,9 @@ fun SettingsDrawer(
                 RadioChoice("Темна", settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))
                 SectionTitle("Розклад і навігація")
+                Text("Початковий екран", style = MaterialTheme.typography.bodyMedium)
+                RadioChoice("День", settings.startupMode == ScheduleMode.DAY) { onStartupModeChange(ScheduleMode.DAY) }
+                RadioChoice("Тиждень", settings.startupMode == ScheduleMode.WEEK) { onStartupModeChange(ScheduleMode.WEEK) }
                 Stepper("Попередніх днів", settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
                 Stepper("Попередніх тижнів", settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))

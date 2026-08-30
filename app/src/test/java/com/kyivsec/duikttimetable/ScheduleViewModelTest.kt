@@ -73,6 +73,25 @@ class ScheduleViewModelTest {
         viewModel.viewModelScope.cancel()
     }
 
+    @Test fun `preferred startup mode is applied without changing the current mode setting`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            settings = ScheduleSettings(startupMode = ScheduleMode.WEEK),
+            selectedGroupId = 1001,
+            selectedInstituteId = 1,
+            selectedCourse = 3,
+            selectedGroupName = "ПД-31",
+        ))
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher)
+        runCurrent()
+
+        assertEquals(ScheduleMode.WEEK, viewModel.uiState.value.selectedMode)
+        viewModel.selectMode(ScheduleMode.DAY)
+        assertEquals(ScheduleMode.DAY, viewModel.uiState.value.selectedMode)
+        assertEquals(ScheduleMode.WEEK, preferences.stored.settings.startupMode)
+        viewModel.viewModelScope.cancel()
+    }
+
     @Test fun `visible refresh uses active mode scope`() = runTest(dispatcher) {
         val repository = FakeScheduleRepository()
         val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)

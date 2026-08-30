@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kyivsec.duikttimetable.model.ScheduleSettings
+import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ThemeMode
 import com.kyivsec.duikttimetable.model.GroupInfo
 import kotlinx.coroutines.flow.first
@@ -35,6 +36,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         return StoredPreferences(
             settings = ScheduleSettings(
                 themeMode = values[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+                startupMode = values[Keys.startupMode]?.let { runCatching { ScheduleMode.valueOf(it) }.getOrNull() } ?: ScheduleMode.DAY,
                 previousDaysToKeep = values[Keys.previousDays] ?: 14,
                 previousWeeksToKeep = values[Keys.previousWeeks] ?: 4,
             ),
@@ -48,6 +50,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
 
     override suspend fun saveSettings(settings: ScheduleSettings) { context.scheduleDataStore.edit {
         it[Keys.theme] = settings.themeMode.name
+        it[Keys.startupMode] = settings.startupMode.name
         it[Keys.previousDays] = settings.previousDaysToKeep
         it[Keys.previousWeeks] = settings.previousWeeksToKeep
     } }
@@ -62,6 +65,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
 
     private object Keys {
         val theme = stringPreferencesKey("theme")
+        val startupMode = stringPreferencesKey("startup_mode")
         val previousDays = intPreferencesKey("previous_days")
         val previousWeeks = intPreferencesKey("previous_weeks")
         val groupId = longPreferencesKey("group_id")

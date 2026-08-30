@@ -163,6 +163,7 @@ class ScheduleViewModel(
     }
 
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
+    fun updateStartupMode(value: ScheduleMode) = updateSettings { it.copy(startupMode = value) }
     fun updatePreviousDays(value: Int) = updateSettings { it.copy(previousDaysToKeep = value.coerceIn(0, 30)) }
     fun updatePreviousWeeks(value: Int) = updateSettings { it.copy(previousWeeksToKeep = value.coerceIn(0, 12)) }
 
@@ -210,7 +211,11 @@ class ScheduleViewModel(
                 _uiState.update { state -> state.copy(isLoading = false, errorMessage = "Не вдалося прочитати налаштування") }
                 return@launch
             }
-            _uiState.update { it.copy(settings = preferences.settings, lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis) }
+            _uiState.update { it.copy(
+                settings = preferences.settings,
+                selectedMode = preferences.settings.startupMode,
+                lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis,
+            ) }
             observeInstitutes()
             groupDirectoryRepository.ensureInstitutes()
             val instituteId = preferences.selectedInstituteId

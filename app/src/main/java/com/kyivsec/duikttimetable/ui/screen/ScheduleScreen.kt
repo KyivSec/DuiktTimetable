@@ -86,6 +86,7 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 isFullReloading = state.isFullReloading,
                 lastRefreshEpochMillis = state.lastFullRefreshEpochMillis,
                 onThemeChange = viewModel::updateTheme,
+                onStartupModeChange = viewModel::updateStartupMode,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
                 onFullReload = viewModel::fullReload,
