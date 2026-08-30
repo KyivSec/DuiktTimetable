@@ -1,0 +1,78 @@
+{
+  "referenceWeekStart": "2026-05-25",
+  "weeks": [
+    {
+      "weekNumber": 21,
+      "startDate": "2026-05-18",
+      "endDate": "2026-05-24",
+      "days": [
+        { "date": "2026-05-18", "lessons": [
+          { "id": "w1-1", "subject": "Архітектура програмного забезпечення", "type": "LECTURE", "startTime": "09:35", "endTime": "10:55", "room": "207", "building": "Корпус 1", "teacher": "Коваленко Т. М." },
+          { "id": "w1-2", "subject": "Комп’ютерні мережі", "type": "LAB", "startTime": "13:10", "endTime": "14:30", "room": "312", "building": "Корпус 2", "teacher": "Гнатюк В. О.", "subgroup": "1 підгрупа" }
+        ] },
+        { "date": "2026-05-19", "lessons": [
+          { "id": "w1-3", "subject": "Англійська мова", "type": "PRACTICE", "startTime": "08:00", "endTime": "09:20", "room": "409", "teacher": "Бондаренко А. В." }
+        ] },
+        { "date": "2026-05-20", "lessons": [] },
+        { "date": "2026-05-21", "lessons": [
+          { "id": "w1-4", "subject": "Безпека вебзастосунків", "type": "LECTURE", "startTime": "11:10", "endTime": "12:30", "room": "205", "teacher": "Мельник О. П.", "notes": "Підготувати питання до модульного контролю" },
+          { "id": "w1-5", "subject": "Безпека вебзастосунків", "type": "LAB", "startTime": "12:45", "endTime": "14:05", "room": "205", "teacher": "Мельник О. П.", "subgroup": "2 підгрупа" }
+        ] },
+        { "date": "2026-05-22", "lessons": [{ "id": "w1-6", "subject": "Фізичне виховання", "type": "PRACTICE", "startTime": "10:00", "endTime": "11:20", "room": "Спортзал", "building": "Спортивний корпус" }] },
+        { "date": "2026-05-23", "lessons": [] },
+        { "date": "2026-05-24", "lessons": [] }
+      ]
+    },
+    {
+      "weekNumber": 22,
+      "startDate": "2026-05-25",
+      "endDate": "2026-05-31",
+      "days": [
+        { "date": "2026-05-25", "lessons": [
+          { "id": "w2-1", "subject": "Вища математика", "type": "LECTURE", "startTime": "08:00", "endTime": "09:20", "room": "201", "building": "Корпус 1", "teacher": "Іваненко І. І." },
+          { "id": "w2-2", "subject": "Фізика", "type": "PRACTICE", "startTime": "09:35", "endTime": "10:55", "room": "105", "building": "Корпус 1", "teacher": "Петренко О. В." },
+          { "id": "w2-3", "subject": "Програмування мобільних пристроїв", "type": "LAB", "startTime": "11:10", "endTime": "12:30", "room": "301", "building": "Корпус 2", "teacher": "Сидоренко М. С.", "subgroup": "1 підгрупа", "notes": "Мати встановлену Android Studio" },
+          { "id": "w2-4", "subject": "Бази даних", "type": "SEMINAR", "startTime": "13:10", "endTime": "14:30", "room": "205", "teacher": "Коваленко Т. М." },
+          { "id": "w2-5", "subject": "Англійська мова", "type": "PRACTICE", "startTime": "14:45", "endTime": "16:05", "room": "409", "teacher": "Бондаренко А. В." }
+        ] },
+        { "date": "2026-05-26", "lessons": [
+          { "id": "w2-6", "subject": "Операційні системи", "type": "LECTURE", "startTime": "08:00", "endTime": "09:20", "room": "207", "teacher": "Кравець Д. Ю." },
+          { "id": "w2-7", "subject": "Дискретна математика", "type": "PRACTICE", "startTime": "11:10", "endTime": "12:30", "room": "301", "teacher": "Романюк Н. І." },
+          { "id": "w2-8", "subject": "Фізичне виховання", "type": "PRACTICE", "startTime": "13:10", "endTime": "14:30", "room": "Спортзал" }
+        ] },
+        { "date": "2026-05-27", "lessons": [
+          { "id": "w2-9", "subject": "Алгоритми та структури даних", "type": "LECTURE", "startTime": "09:35", "endTime": "10:55", "room": "302", "teacher": "Шевченко Л. В." },
+          { "id": "w2-10", "subject": "Алгоритми та структури даних", "type": "LAB", "startTime": "11:10", "endTime": "12:30", "room": "303", "teacher": "Шевченко Л. В.", "subgroup": "2 підгрупа" },
+          { "id": "w2-11", "subject": "Основи UI/UX", "type": "SEMINAR", "startTime": "14:45", "endTime": "16:05", "room": null, "teacher": "Левченко К. О.", "onlineUrl": "https://meet.google.com/example", "notes": "Онлайн-консультація" }
+        ] },
+        { "date": "2026-05-28", "lessons": [{ "id": "w2-12", "subject": "Теорія ймовірностей", "type": "LECTURE", "startTime": "12:45", "endTime": "14:05", "room": "401", "teacher": "Іваненко І. І." }] },
+        { "date": "2026-05-29", "lessons": [
+          { "id": "w2-13", "subject": "Комп’ютерні мережі", "type": "LAB", "startTime": "08:00", "endTime": "09:20", "room": "312", "teacher": "Гнатюк В. О." },
+          { "id": "w2-14", "subject": "Проєктний практикум", "type": "PRACTICE", "startTime": "13:10", "endTime": "14:30", "room": "215", "teacher": "Марченко Ю. С." }
+        ] },
+        { "date": "2026-05-30", "lessons": [] },
+        { "date": "2026-05-31", "lessons": [] }
+      ]
+    },
+    {
+      "weekNumber": 23,
+      "startDate": "2026-06-01",
+      "endDate": "2026-06-07",
+      "days": [
+        { "date": "2026-06-01", "lessons": [
+          { "id": "w3-1", "subject": "Хмарні технології", "type": "LECTURE", "startTime": "09:35", "endTime": "10:55", "room": "Актова зала", "teacher": "Олійник Р. А." },
+          { "id": "w3-2", "subject": "Хмарні технології", "type": "LAB", "startTime": "11:10", "endTime": "12:30", "room": "310", "teacher": "Олійник Р. А.", "subgroup": "1 підгрупа" }
+        ] },
+        { "date": "2026-06-02", "lessons": [{ "id": "w3-3", "subject": "Модульний контроль з баз даних", "type": "EXAM", "startTime": "10:00", "endTime": "11:20", "room": "205", "teacher": "Коваленко Т. М.", "notes": "Взяти студентський квиток" }] },
+        { "date": "2026-06-03", "lessons": [] },
+        { "date": "2026-06-04", "lessons": [
+          { "id": "w3-4", "subject": "Програмування мобільних пристроїв", "type": "LAB", "startTime": "08:00", "endTime": "09:20", "room": "301", "teacher": "Сидоренко М. С.", "subgroup": "2 підгрупа" },
+          { "id": "w3-5", "subject": "Командна розробка програмного забезпечення", "type": "PRACTICE", "startTime": "14:45", "endTime": "16:05", "room": "215", "teacher": "Марченко Ю. С." }
+        ] },
+        { "date": "2026-06-05", "lessons": [{ "id": "w3-6", "subject": "Консультація перед іспитом", "type": "OTHER", "startTime": "11:10", "endTime": "12:00", "room": "201", "teacher": "Іваненко І. І.", "onlineUrl": "https://meet.google.com/consultation" }] },
+        { "date": "2026-06-06", "lessons": [] },
+        { "date": "2026-06-07", "lessons": [] }
+      ]
+    }
+  ]
+}
