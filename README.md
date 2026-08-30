@@ -45,6 +45,12 @@ Run local unit tests with:
 ./gradlew testDebugUnitTest
 ```
 
+## Continuous integration
+
+Every push to `main` runs the unit tests and builds signed APK and AAB release artifacts with GitHub Actions. The workflow is also available through **Actions → Android release build → Run workflow**. Successful artifacts are retained for 30 days on the workflow run.
+
+Release credentials are stored as encrypted GitHub Actions secrets named `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`; signing material is never committed.
+
 ## Schedule parsing
 
 Data comes directly from `https://e-rozklad.duikt.edu.ua/time-table/group`; no intermediary server is used.
