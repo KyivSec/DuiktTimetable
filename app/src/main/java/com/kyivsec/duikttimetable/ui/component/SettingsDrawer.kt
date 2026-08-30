@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,12 +36,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.ScheduleSettings
 import com.kyivsec.duikttimetable.model.ThemeMode
 import com.kyivsec.duikttimetable.util.UkrainianLocale
-import com.kyivsec.duikttimetable.util.ukrainianName
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -48,43 +50,48 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsDrawer(
     settings: ScheduleSettings, isFullReloading: Boolean, lastRefreshEpochMillis: Long?,
-    onThemeChange: (ThemeMode) -> Unit, onFirstDayChange: (DayOfWeek) -> Unit,
+    onThemeChange: (ThemeMode) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
     ModalDrawerSheet(Modifier.fillMaxHeight().fillMaxWidth(0.88f)) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
-            Text("Налаштування", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(20.dp))
-            SectionTitle("Вигляд")
-            Text("Тема", style = MaterialTheme.typography.bodyMedium)
-            RadioChoice("Системна", settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
-            RadioChoice("Світла", settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
-            RadioChoice("Темна", settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
-            HorizontalDivider(Modifier.padding(vertical = 14.dp))
-            SectionTitle("Розклад і навігація")
-            DropdownSelector(
-                label = "Перший день тижня",
-                selected = settings.firstDayOfWeek,
-                options = WeekDays,
-                optionLabel = DayOfWeek::ukrainianName,
-                onSelected = onFirstDayChange,
-            )
-            Stepper("Попередніх днів", settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
-            Stepper("Попередніх тижнів", settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
-            HorizontalDivider(Modifier.padding(vertical = 14.dp))
-            SectionTitle("Дані")
-            Button(onClick = onFullReload, enabled = !isFullReloading, modifier = Modifier.fillMaxWidth()) {
-                ReloadIcon(isFullReloading)
-                Spacer(Modifier.width(8.dp))
-                Text(if (isFullReloading) "Оновлення…" else "Оновити весь розклад")
+        Column(Modifier.fillMaxHeight()) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
+                Text("Налаштування", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(20.dp))
+                SectionTitle("Вигляд")
+                Text("Тема", style = MaterialTheme.typography.bodyMedium)
+                RadioChoice("Системна", settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
+                RadioChoice("Світла", settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
+                RadioChoice("Темна", settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
+                HorizontalDivider(Modifier.padding(vertical = 14.dp))
+                SectionTitle("Розклад і навігація")
+                Stepper("Попередніх днів", settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
+                Stepper("Попередніх тижнів", settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
+                HorizontalDivider(Modifier.padding(vertical = 14.dp))
+                SectionTitle("Дані")
+                Button(onClick = onFullReload, enabled = !isFullReloading, modifier = Modifier.fillMaxWidth()) {
+                    ReloadIcon(isFullReloading)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isFullReloading) "Оновлення…" else "Оновити весь розклад")
+                }
+                Text(
+                    lastRefreshEpochMillis?.let {
+                        val value = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                        "Останнє повне оновлення: ${value.format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", UkrainianLocale))}"
+                    } ?: "Повне оновлення ще не виконувалося",
+                    Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Text(
-                lastRefreshEpochMillis?.let {
-                    val value = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                    "Останнє повне оновлення: ${value.format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", UkrainianLocale))}"
-                } ?: "Повне оновлення ще не виконувалося",
-                Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            HorizontalDivider()
+            Row(
+                Modifier.fillMaxWidth().clickable { uriHandler.openUri(RepositoryUrl) }.padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(painterResource(R.drawable.ic_github), null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(12.dp))
+                Text("GitHub", style = MaterialTheme.typography.bodyLarge)
+            }
         }
     }
 }
@@ -105,10 +112,7 @@ private fun ReloadIcon(spinning: Boolean) {
     Icon(Icons.Rounded.Refresh, null, Modifier.size(20.dp).rotate(rotation))
 }
 
-private val WeekDays = listOf(
-    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY,
-    DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY,
-)
+private const val RepositoryUrl = "https://github.com/KyivSec/DuiktTimetable"
 
 @Composable private fun SectionTitle(text: String) = Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
 
