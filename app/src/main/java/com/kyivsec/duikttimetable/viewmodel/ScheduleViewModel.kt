@@ -79,7 +79,7 @@ class ScheduleViewModel(
         if (_uiState.value.selectedMode == mode) return
         _uiState.update { state ->
             if (mode == ScheduleMode.WEEK) {
-                state.copy(selectedMode = mode, selectedWeek = weekStart(state.selectedDate, state.settings.firstDayOfWeek))
+                state.copy(selectedMode = mode, selectedWeek = weekStart(state.selectedDate, DayOfWeek.MONDAY))
             } else {
                 val end = state.selectedWeek.plusDays(6)
                 val target = when {
@@ -95,7 +95,7 @@ class ScheduleViewModel(
     fun selectDate(date: LocalDate) {
         val state = _uiState.value
         if (date !in state.availableDates || date == state.selectedDate) return
-        _uiState.update { it.copy(selectedDate = date, selectedWeek = weekStart(date, it.settings.firstDayOfWeek)) }
+        _uiState.update { it.copy(selectedDate = date, selectedWeek = weekStart(date, DayOfWeek.MONDAY)) }
     }
 
     fun selectWeek(start: LocalDate) {
@@ -107,7 +107,7 @@ class ScheduleViewModel(
     fun goToToday() {
         _uiState.update { state -> state.copy(
             selectedDate = closestAvailableDate(today(), state.availableDates),
-            selectedWeek = weekStart(today(), state.settings.firstDayOfWeek),
+            selectedWeek = weekStart(today(), DayOfWeek.MONDAY),
         ) }
     }
 
@@ -163,7 +163,6 @@ class ScheduleViewModel(
     }
 
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
-    fun updateFirstDay(value: DayOfWeek) = updateSettings { it.copy(firstDayOfWeek = value) }
     fun updatePreviousDays(value: Int) = updateSettings { it.copy(previousDaysToKeep = value.coerceIn(0, 30)) }
     fun updatePreviousWeeks(value: Int) = updateSettings { it.copy(previousWeeksToKeep = value.coerceIn(0, 12)) }
 
@@ -291,7 +290,7 @@ class ScheduleViewModel(
 
     private fun displayRange(): DateRange {
         val state = _uiState.value
-        val currentWeek = weekStart(today(), state.settings.firstDayOfWeek)
+        val currentWeek = weekStart(today(), DayOfWeek.MONDAY)
         return DateRange(
             currentWeek.minusWeeks(state.settings.previousWeeksToKeep.toLong()),
             currentWeek.plusWeeks(FUTURE_WEEKS).plusDays(6),
@@ -338,7 +337,7 @@ class ScheduleViewModel(
     }
 
     private fun buildWindows(state: ScheduleUiState, days: List<ScheduleDay>): WindowResult {
-        val firstDay = state.settings.firstDayOfWeek
+        val firstDay = DayOfWeek.MONDAY
         val currentWeek = weekStart(today(), firstDay)
         val earliest = currentWeek.minusWeeks(state.settings.previousWeeksToKeep.toLong())
         val latest = currentWeek.plusWeeks(FUTURE_WEEKS)
@@ -367,7 +366,7 @@ class ScheduleViewModel(
         if (settings == previous) return
         _uiState.update { it.copy(settings = settings) }
         rebuildWindows()
-        if (settings.previousWeeksToKeep != previous.previousWeeksToKeep || settings.firstDayOfWeek != previous.firstDayOfWeek) {
+        if (settings.previousWeeksToKeep != previous.previousWeeksToKeep) {
             _uiState.value.selectedGroup?.let(::observeSchedule)
         }
         viewModelScope.launch { preferencesRepository.saveSettings(settings) }
@@ -375,7 +374,7 @@ class ScheduleViewModel(
 
     private suspend fun pruneHistory() {
         val settings = _uiState.value.settings
-        val weekBoundary = weekStart(today(), settings.firstDayOfWeek).minusWeeks(settings.previousWeeksToKeep.toLong())
+        val weekBoundary = weekStart(today(), DayOfWeek.MONDAY).minusWeeks(settings.previousWeeksToKeep.toLong())
         val dayBoundary = today().minusDays(settings.previousDaysToKeep.toLong())
         scheduleRepository.pruneBefore(minOf(weekBoundary, dayBoundary))
     }

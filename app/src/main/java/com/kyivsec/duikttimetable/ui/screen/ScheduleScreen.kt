@@ -86,7 +86,6 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 isFullReloading = state.isFullReloading,
                 lastRefreshEpochMillis = state.lastFullRefreshEpochMillis,
                 onThemeChange = viewModel::updateTheme,
-                onFirstDayChange = viewModel::updateFirstDay,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
                 onFullReload = viewModel::fullReload,
@@ -145,7 +144,7 @@ private fun ScheduleBody(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             state.weeks.isEmpty() || state.availableDates.isEmpty() -> EmptySchedule(onRetry = viewModel::retry)
             else -> ScheduleContent(state, now, viewModel)
         }
-        val currentWeek = weekStart(now.toLocalDate(), state.settings.firstDayOfWeek)
+        val currentWeek = weekStart(now.toLocalDate(), java.time.DayOfWeek.MONDAY)
         val showToday = if (state.selectedMode == ScheduleMode.DAY) {
             state.selectedDate != now.toLocalDate()
         } else state.selectedWeek != currentWeek

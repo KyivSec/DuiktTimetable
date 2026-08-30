@@ -10,7 +10,6 @@ import com.kyivsec.duikttimetable.model.ScheduleSettings
 import com.kyivsec.duikttimetable.model.ThemeMode
 import com.kyivsec.duikttimetable.model.GroupInfo
 import kotlinx.coroutines.flow.first
-import java.time.DayOfWeek
 
 private val Context.scheduleDataStore by preferencesDataStore(name = "schedule_preferences")
 
@@ -36,7 +35,6 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         return StoredPreferences(
             settings = ScheduleSettings(
                 themeMode = values[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
-                firstDayOfWeek = values[Keys.firstDay]?.let { runCatching { DayOfWeek.valueOf(it) }.getOrNull() } ?: DayOfWeek.MONDAY,
                 previousDaysToKeep = values[Keys.previousDays] ?: 14,
                 previousWeeksToKeep = values[Keys.previousWeeks] ?: 4,
             ),
@@ -50,7 +48,6 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
 
     override suspend fun saveSettings(settings: ScheduleSettings) { context.scheduleDataStore.edit {
         it[Keys.theme] = settings.themeMode.name
-        it[Keys.firstDay] = settings.firstDayOfWeek.name
         it[Keys.previousDays] = settings.previousDaysToKeep
         it[Keys.previousWeeks] = settings.previousWeeksToKeep
     } }
@@ -65,7 +62,6 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
 
     private object Keys {
         val theme = stringPreferencesKey("theme")
-        val firstDay = stringPreferencesKey("first_day")
         val previousDays = intPreferencesKey("previous_days")
         val previousWeeks = intPreferencesKey("previous_weeks")
         val groupId = longPreferencesKey("group_id")

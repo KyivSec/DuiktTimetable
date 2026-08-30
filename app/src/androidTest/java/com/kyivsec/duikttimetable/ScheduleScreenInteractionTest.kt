@@ -42,10 +42,6 @@ class ScheduleScreenInteractionTest {
         composeRule.waitUntil(timeoutMillis = 5_000) { composeRule.onAllNodesWithText("ПД-31").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithContentDescription("Відкрити налаштування").performClick()
         composeRule.onNodeWithText("Налаштування").assertIsDisplayed()
-        composeRule.onNodeWithText("Перший день тижня").performClick()
-        composeRule.onNodeWithText("Середа").assertIsDisplayed().performClick()
-        composeRule.onNodeWithText("Перший день тижня").performClick()
-        composeRule.onNodeWithText("Понеділок").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Оновити весь розклад").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Оновлення…").assertIsDisplayed()
         captureScreen("settings-reload-verification.png")
