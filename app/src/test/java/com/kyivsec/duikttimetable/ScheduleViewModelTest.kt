@@ -120,6 +120,23 @@ class ScheduleViewModelTest {
         assertEquals(1, repository.semesterRefreshes)
         viewModel.viewModelScope.cancel()
     }
+
+    @Test fun `day and week selections remain independent`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        runCurrent()
+
+        val initialDate = viewModel.uiState.value.selectedDate
+        val nextWeek = initialDate.plusWeeks(1).let { com.kyivsec.duikttimetable.util.weekStart(it, java.time.DayOfWeek.MONDAY) }
+        viewModel.selectWeek(nextWeek)
+        assertEquals(initialDate, viewModel.uiState.value.selectedDate)
+
+        val nextDate = initialDate.plusDays(1)
+        viewModel.selectDate(nextDate)
+        assertEquals(nextDate, viewModel.uiState.value.selectedDate)
+        assertEquals(nextWeek, viewModel.uiState.value.selectedWeek)
+        viewModel.viewModelScope.cancel()
+    }
 }
 
 private class FakeSettingsRepository(

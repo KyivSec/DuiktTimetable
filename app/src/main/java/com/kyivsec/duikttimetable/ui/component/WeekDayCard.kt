@@ -104,7 +104,7 @@ private fun WeekLessonRow(lesson: Lesson, isPast: Boolean, onClick: () -> Unit) 
             .clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        androidx.compose.foundation.Canvas(Modifier.size(9.dp)) { drawCircle(lesson.type.accentColor()) }
+        ClassNumberBadge(lesson)
         Spacer(Modifier.width(10.dp))
         Text("${lesson.startTime.format(weekTimeFormatter)} – ${lesson.endTime.format(weekTimeFormatter)}", Modifier.width(98.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(lesson.subject, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)

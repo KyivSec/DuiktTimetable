@@ -50,6 +50,21 @@ internal fun Lesson.classNumber(): Int = classStartTimes.indexOfLast { it <= sta
     .coerceAtLeast(0) + 1
 
 @Composable
+internal fun ClassNumberBadge(lesson: Lesson) {
+    Box(
+        Modifier.size(22.dp).clip(RoundedCornerShape(5.dp)).background(lesson.type.accentColor()),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = lesson.classNumber().toString(),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
+    }
+}
+
+@Composable
 fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifier, isPast: Boolean = false) {
     Card(
         modifier = modifier.graphicsLayer { alpha = if (isPast) 0.58f else 1f }.clickable(onClick = onClick),
@@ -65,17 +80,7 @@ fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifie
                 Modifier.weight(1f).fillMaxHeight().padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(lesson.type.accentColor()),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = lesson.classNumber().toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
+                ClassNumberBadge(lesson)
                 Column(Modifier.padding(start = 10.dp).weight(1f)) {
                     Text(lesson.subject, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text("${lesson.startTime.format(timeFormatter)} – ${lesson.endTime.format(timeFormatter)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)

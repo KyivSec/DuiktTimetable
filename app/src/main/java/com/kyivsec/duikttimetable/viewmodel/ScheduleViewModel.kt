@@ -79,25 +79,13 @@ class ScheduleViewModel(
 
     fun selectMode(mode: ScheduleMode) {
         if (_uiState.value.selectedMode == mode) return
-        _uiState.update { state ->
-            if (mode == ScheduleMode.WEEK) {
-                state.copy(selectedMode = mode, selectedWeek = weekStart(state.selectedDate, DayOfWeek.MONDAY))
-            } else {
-                val end = state.selectedWeek.plusDays(6)
-                val target = when {
-                    state.selectedDate in state.selectedWeek..end -> state.selectedDate
-                    today() in state.selectedWeek..end -> today()
-                    else -> state.selectedWeek
-                }
-                state.copy(selectedMode = mode, selectedDate = closestAvailableDate(target, state.availableDates))
-            }
-        }
+        _uiState.update { it.copy(selectedMode = mode) }
     }
 
     fun selectDate(date: LocalDate) {
         val state = _uiState.value
         if (date !in state.availableDates || date == state.selectedDate) return
-        _uiState.update { it.copy(selectedDate = date, selectedWeek = weekStart(date, DayOfWeek.MONDAY)) }
+        _uiState.update { it.copy(selectedDate = date) }
     }
 
     fun selectWeek(start: LocalDate) {
