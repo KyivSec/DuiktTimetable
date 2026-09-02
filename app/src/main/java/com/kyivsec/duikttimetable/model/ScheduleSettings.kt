@@ -9,6 +9,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 data class ScheduleSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val startupMode: ScheduleMode = ScheduleMode.DAY,
+    val hideClassesInWeekView: Boolean = false,
     val previousDaysToKeep: Int = 14,
     val previousWeeksToKeep: Int = 4,
 )

@@ -2,6 +2,7 @@ package com.kyivsec.duikttimetable.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -37,6 +38,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
             settings = ScheduleSettings(
                 themeMode = values[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
                 startupMode = values[Keys.startupMode]?.let { runCatching { ScheduleMode.valueOf(it) }.getOrNull() } ?: ScheduleMode.DAY,
+                hideClassesInWeekView = values[Keys.hideClassesInWeekView] ?: false,
                 previousDaysToKeep = values[Keys.previousDays] ?: 14,
                 previousWeeksToKeep = values[Keys.previousWeeks] ?: 4,
             ),
@@ -51,6 +53,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
     override suspend fun saveSettings(settings: ScheduleSettings) { context.scheduleDataStore.edit {
         it[Keys.theme] = settings.themeMode.name
         it[Keys.startupMode] = settings.startupMode.name
+        it[Keys.hideClassesInWeekView] = settings.hideClassesInWeekView
         it[Keys.previousDays] = settings.previousDaysToKeep
         it[Keys.previousWeeks] = settings.previousWeeksToKeep
     } }
@@ -66,6 +69,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
     private object Keys {
         val theme = stringPreferencesKey("theme")
         val startupMode = stringPreferencesKey("startup_mode")
+        val hideClassesInWeekView = booleanPreferencesKey("hide_classes_in_week_view")
         val previousDays = intPreferencesKey("previous_days")
         val previousWeeks = intPreferencesKey("previous_weeks")
         val groupId = longPreferencesKey("group_id")

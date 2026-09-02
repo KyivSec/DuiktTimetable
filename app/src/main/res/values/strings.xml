@@ -4,6 +4,7 @@
     <string name="select_group">Оберіть групу</string>
     <string name="day">День</string>
     <string name="week">Тиждень</string>
+    <string name="hide_classes_in_week_view">Приховувати пари в режимі тижня</string>
     <string name="today">Сьогодні</string>
     <string name="no_lessons">Немає пар</string>
     <string name="schedule_unavailable">Розклад недоступний</string>

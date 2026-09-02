@@ -98,6 +98,7 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 onLanguageChange = { language -> LanguageHandler.setLanguageAndRecreate(context, language) },
                 onThemeChange = viewModel::updateTheme,
                 onStartupModeChange = viewModel::updateStartupMode,
+                onHideClassesInWeekViewChange = viewModel::updateHideClassesInWeekView,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
                 onFullReload = viewModel::fullReload,

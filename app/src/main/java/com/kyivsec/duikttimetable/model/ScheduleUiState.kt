@@ -24,6 +24,8 @@ data class ScheduleUiState(
     val weeks: List<ScheduleWeek> = emptyList(),
     val availableDates: List<LocalDate> = emptyList(),
     val expandedDates: Set<LocalDate> = emptySet(),
+    val expandedDatesInitialized: Boolean = false,
+    val weekSectionsStartExpanded: Boolean = true,
     val isRefreshing: Boolean = false,
     val isFullReloading: Boolean = false,
     val settings: ScheduleSettings = ScheduleSettings(),

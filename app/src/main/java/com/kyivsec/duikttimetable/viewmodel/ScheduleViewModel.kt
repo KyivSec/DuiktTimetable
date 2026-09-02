@@ -158,7 +158,13 @@ class ScheduleViewModel(
     fun applyGroup(group: GroupInfo) {
         if (_uiState.value.selectedGroup?.id == group.id) return
         allDays = emptyList()
-        _uiState.update { it.copy(selectedGroup = group, draftGroup = group, needsGroupSelection = false) }
+        _uiState.update { it.copy(
+            selectedGroup = group,
+            draftGroup = group,
+            needsGroupSelection = false,
+            expandedDates = emptySet(),
+            expandedDatesInitialized = false,
+        ) }
         viewModelScope.launch { preferencesRepository.saveSelectedGroup(group) }
         observeSchedule(group)
         syncSelectedGroup(group)
@@ -166,6 +172,7 @@ class ScheduleViewModel(
 
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
     fun updateStartupMode(value: ScheduleMode) = updateSettings { it.copy(startupMode = value) }
+    fun updateHideClassesInWeekView(value: Boolean) = updateSettings { it.copy(hideClassesInWeekView = value) }
     fun updatePreviousDays(value: Int) = updateSettings { it.copy(previousDaysToKeep = value.coerceIn(0, 30)) }
     fun updatePreviousWeeks(value: Int) = updateSettings { it.copy(previousWeeksToKeep = value.coerceIn(0, 12)) }
 
@@ -216,6 +223,7 @@ class ScheduleViewModel(
             _uiState.update { it.copy(
                 settings = preferences.settings,
                 selectedMode = preferences.settings.startupMode,
+                weekSectionsStartExpanded = !preferences.settings.hideClassesInWeekView,
                 lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis,
             ) }
             observeInstitutes()
@@ -327,6 +335,7 @@ class ScheduleViewModel(
                 selectedDate = result.selectedDate,
                 selectedWeek = result.selectedWeek,
                 expandedDates = result.expandedDates,
+                expandedDatesInitialized = result.expandedDatesInitialized,
             )
         }
     }
@@ -340,6 +349,7 @@ class ScheduleViewModel(
             selectedDate = result.selectedDate,
             selectedWeek = result.selectedWeek,
             expandedDates = result.expandedDates,
+            expandedDatesInitialized = result.expandedDatesInitialized,
         ) }
     }
 
@@ -359,12 +369,19 @@ class ScheduleViewModel(
         val requestedWeek = weekStart(state.selectedWeek, firstDay)
         val selectedWeek = weeks.firstOrNull { it.startDate == requestedWeek }?.startDate
             ?: weekStart(selectedDate, firstDay)
-        val expanded = state.expandedDates.ifEmpty {
-            val selected = weeks.firstOrNull { it.startDate == selectedWeek }
-            setOfNotNull(selected?.days?.firstOrNull { it.date == today() && it.lessons.isNotEmpty() }?.date
-                ?: selected?.days?.firstOrNull { it.lessons.isNotEmpty() }?.date)
+        val populatedDates = weeks.flatMap { it.days }
+            .filter { it.lessons.isNotEmpty() }
+            .map { it.date }
+            .toSet()
+        val expanded = if (!state.expandedDatesInitialized) {
+            if (state.weekSectionsStartExpanded) populatedDates else emptySet()
+        } else {
+            state.expandedDates.intersect(populatedDates)
         }
-        return WindowResult(weeks, dates, selectedDate, selectedWeek, expanded)
+        return WindowResult(
+            weeks, dates, selectedDate, selectedWeek, expanded,
+            expandedDatesInitialized = state.expandedDatesInitialized || populatedDates.isNotEmpty(),
+        )
     }
 
     private fun updateSettings(transform: (ScheduleSettings) -> ScheduleSettings) {
@@ -415,6 +432,7 @@ class ScheduleViewModel(
         val selectedDate: LocalDate,
         val selectedWeek: LocalDate,
         val expandedDates: Set<LocalDate>,
+        val expandedDatesInitialized: Boolean,
     )
 
     class Factory(

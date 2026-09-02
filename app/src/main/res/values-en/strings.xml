@@ -4,6 +4,7 @@
     <string name="select_group">Select a group</string>
     <string name="day">Day</string>
     <string name="week">Week</string>
+    <string name="hide_classes_in_week_view">Hide classes in week view</string>
     <string name="today">Today</string>
     <string name="no_lessons">No classes</string>
     <string name="schedule_unavailable">Timetable unavailable</string>

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +57,7 @@ fun SettingsDrawer(
     settings: ScheduleSettings, isFullReloading: Boolean, lastRefreshEpochMillis: Long?,
     selectedLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
+    onHideClassesInWeekViewChange: (Boolean) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -91,6 +93,7 @@ fun SettingsDrawer(
                 Text(stringResource(R.string.startup_screen), style = MaterialTheme.typography.bodyMedium)
                 RadioChoice(stringResource(R.string.day), settings.startupMode == ScheduleMode.DAY) { onStartupModeChange(ScheduleMode.DAY) }
                 RadioChoice(stringResource(R.string.week), settings.startupMode == ScheduleMode.WEEK) { onStartupModeChange(ScheduleMode.WEEK) }
+                CheckboxChoice(stringResource(R.string.hide_classes_in_week_view), settings.hideClassesInWeekView, onHideClassesInWeekViewChange)
                 Stepper(stringResource(R.string.previous_days), settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
                 Stepper(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))
@@ -144,6 +147,16 @@ private const val RepositoryUrl = "https://github.com/KyivSec/DuiktTimetable"
 @Composable private fun RadioChoice(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         RadioButton(selected, onClick)
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable private fun CheckboxChoice(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
