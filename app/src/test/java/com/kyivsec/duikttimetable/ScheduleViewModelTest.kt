@@ -125,6 +125,19 @@ class ScheduleViewModelTest {
 
         assertEquals(nextWeek, viewModel.uiState.value.selectedWeek)
         assertEquals(1, repository.semesterRefreshes)
+        assertFalse(repository.lastSemesterForce)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `full reload bypasses semester freshness`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        runCurrent()
+
+        viewModel.fullReload()
+        runCurrent()
+
+        assertTrue(repository.lastSemesterForce)
         viewModel.viewModelScope.cancel()
     }
 
@@ -210,6 +223,7 @@ private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryReposit
     var refreshedDay: LocalDate? = null
     var refreshedWeek: LocalDate? = null
     var semesterRefreshes: Int = 0
+    var lastSemesterForce: Boolean = false
     private val start = LocalDate.of(2026, 8, 24)
     private val lesson = Lesson("1", "Програмування", LessonType.LAB, LocalTime.of(9, 35), LocalTime.of(10, 55))
     private val week = ScheduleWeek(35, start, start.plusDays(6), (0L..6).map { ScheduleDay(start.plusDays(it), if (it == 4L) listOf(lesson) else emptyList()) })
@@ -223,8 +237,9 @@ private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryReposit
         if (force && range.endInclusive == range.startInclusive.plusDays(6)) refreshedWeek = range.startInclusive
         return SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     }
-    override suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult {
+    override suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean): SyncResult {
         semesterRefreshes++
+        lastSemesterForce = force
         return SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     }
     override suspend fun pruneBefore(date: LocalDate) = Unit

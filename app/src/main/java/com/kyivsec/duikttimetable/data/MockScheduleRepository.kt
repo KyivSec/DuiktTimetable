@@ -27,7 +27,7 @@ class MockScheduleRepository(loader: MockDataLoader, private val clock: Clock = 
         delay(650)
         return SyncResult.Success(Instant.now(clock), 0)
     }
-    override suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult {
+    override suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean): SyncResult {
         delay(1_100)
         return SyncResult.Success(Instant.now(clock), days.value.sumOf { it.lessons.size })
     }

@@ -36,7 +36,7 @@ interface ScheduleRepository {
     fun observeSchedule(owner: TimetableOwner, range: DateRange): Flow<List<ScheduleDay>>
     fun observeCachedDates(owner: TimetableOwner, range: DateRange): Flow<Set<LocalDate>>
     suspend fun syncSchedule(owner: TimetableOwner, range: DateRange, force: Boolean = false): SyncResult
-    suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult
+    suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean = false): SyncResult
     suspend fun pruneBefore(date: LocalDate)
 }
 

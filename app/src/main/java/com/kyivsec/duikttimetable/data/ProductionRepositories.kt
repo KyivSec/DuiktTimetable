@@ -75,9 +75,12 @@ class RoomScheduleRepository(
         }
     }
 
-    override suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult {
+    override suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean): SyncResult {
         val today = LocalDate.now(clock)
         val probeRange = DateRange(today.minusWeeks(1), today.plusWeeks(1))
+        // A semester sync writes every day atomically, so today's marker is enough to prove
+        // that the cached semester completed. The probe extends beyond semester boundaries.
+        if (!force && isFresh(owner, DateRange(today, today))) return SyncResult.Success(Instant.now(clock), 0)
         return runCatching {
             val provider = providers.providerFor(owner)
             val probe = provider.fetch(owner, probeRange)

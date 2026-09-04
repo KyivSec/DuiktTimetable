@@ -335,7 +335,7 @@ class ScheduleViewModel(
                     teacherDirectoryRepository.ensureTeachers(owner.teacher.chairId, force = true)
                 }
             }
-            when (val result = scheduleRepository.syncCurrentSemester(owner)) {
+            when (val result = scheduleRepository.syncCurrentSemester(owner, force = true)) {
                 is SyncResult.Success -> {
                     preferencesRepository.saveLastFullRefresh(result.completedAt.toEpochMilli())
                     _uiState.update { it.copy(lastFullRefreshEpochMillis = result.completedAt.toEpochMilli()) }
