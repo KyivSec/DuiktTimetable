@@ -105,6 +105,7 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 onThemeChange = viewModel::updateTheme,
                 onStartupModeChange = viewModel::updateStartupMode,
                 onHideClassesInWeekViewChange = viewModel::updateHideClassesInWeekView,
+                onFastUpdateChange = viewModel::updateFastUpdate,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
                 onFullReload = viewModel::fullReload,

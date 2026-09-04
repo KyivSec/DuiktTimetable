@@ -49,6 +49,7 @@
     <string name="previous_days">Previous days</string>
     <string name="previous_weeks">Previous weeks</string>
     <string name="data">Data</string>
+    <string name="fast_update">Fast update</string>
     <string name="reload_all">Refresh entire timetable</string>
     <string name="reload_in_progress">Refreshing…</string>
     <string name="last_full_refresh">Last full refresh: %1$s</string>

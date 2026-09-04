@@ -51,6 +51,7 @@
     <string name="previous_days">Попередніх днів</string>
     <string name="previous_weeks">Попередніх тижнів</string>
     <string name="data">Дані</string>
+    <string name="fast_update">Швидке оновлення</string>
     <string name="reload_all">Оновити весь розклад</string>
     <string name="reload_in_progress">Оновлення…</string>
     <string name="last_full_refresh">Останнє повне оновлення: %1$s</string>

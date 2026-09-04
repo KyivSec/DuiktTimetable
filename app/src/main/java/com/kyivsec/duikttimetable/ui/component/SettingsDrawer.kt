@@ -58,6 +58,7 @@ fun SettingsDrawer(
     selectedLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onHideClassesInWeekViewChange: (Boolean) -> Unit,
+    onFastUpdateChange: (Boolean) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
     onChangeOccupation: () -> Unit,
 ) {
@@ -99,6 +100,7 @@ fun SettingsDrawer(
                 Stepper(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
                 HorizontalDivider(Modifier.padding(vertical = 14.dp))
                 SectionTitle(stringResource(R.string.data))
+                CheckboxChoice(stringResource(R.string.fast_update), settings.fastUpdate, onFastUpdateChange)
                 Button(onClick = onFullReload, enabled = !isFullReloading, modifier = Modifier.fillMaxWidth()) {
                     ReloadIcon(isFullReloading)
                     Spacer(Modifier.width(8.dp))

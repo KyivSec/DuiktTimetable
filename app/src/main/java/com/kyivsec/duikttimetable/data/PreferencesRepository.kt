@@ -68,6 +68,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
                 themeMode = values[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
                 startupMode = values[Keys.startupMode]?.let { runCatching { ScheduleMode.valueOf(it) }.getOrNull() } ?: ScheduleMode.DAY,
                 hideClassesInWeekView = values[Keys.hideClassesInWeekView] ?: false,
+                fastUpdate = values[Keys.fastUpdate] ?: false,
                 previousDaysToKeep = values[Keys.previousDays] ?: 14,
                 previousWeeksToKeep = values[Keys.previousWeeks] ?: 4,
             ),
@@ -95,6 +96,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         it[Keys.theme] = settings.themeMode.name
         it[Keys.startupMode] = settings.startupMode.name
         it[Keys.hideClassesInWeekView] = settings.hideClassesInWeekView
+        it[Keys.fastUpdate] = settings.fastUpdate
         it[Keys.previousDays] = settings.previousDaysToKeep
         it[Keys.previousWeeks] = settings.previousWeeksToKeep
     } }
@@ -127,6 +129,7 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         val theme = stringPreferencesKey("theme")
         val startupMode = stringPreferencesKey("startup_mode")
         val hideClassesInWeekView = booleanPreferencesKey("hide_classes_in_week_view")
+        val fastUpdate = booleanPreferencesKey("fast_update")
         val previousDays = intPreferencesKey("previous_days")
         val previousWeeks = intPreferencesKey("previous_weeks")
         val groupId = longPreferencesKey("group_id")

@@ -292,6 +292,7 @@ class ScheduleViewModel(
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
     fun updateStartupMode(value: ScheduleMode) = updateSettings { it.copy(startupMode = value) }
     fun updateHideClassesInWeekView(value: Boolean) = updateSettings { it.copy(hideClassesInWeekView = value) }
+    fun updateFastUpdate(value: Boolean) = updateSettings { it.copy(fastUpdate = value) }
     fun updatePreviousDays(value: Int) = updateSettings { it.copy(previousDaysToKeep = value.coerceIn(0, 30)) }
     fun updatePreviousWeeks(value: Int) = updateSettings { it.copy(previousWeeksToKeep = value.coerceIn(0, 12)) }
 
@@ -299,8 +300,8 @@ class ScheduleViewModel(
         val snapshot = _uiState.value
         val owner = snapshot.activeOwner ?: return
         if (snapshot.isRefreshing || snapshot.isFullReloading) return
-        val range = if (snapshot.selectedMode == ScheduleMode.DAY) DateRange(snapshot.selectedDate, snapshot.selectedDate)
-        else DateRange(snapshot.selectedWeek, snapshot.selectedWeek.plusDays(6))
+        val range = if (snapshot.settings.fastUpdate) fastUpdateRange(snapshot)
+        else visibleRange(snapshot)
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
             handleSyncResult(scheduleRepository.syncSchedule(owner, range, force = true))
@@ -621,11 +622,38 @@ class ScheduleViewModel(
         automaticSyncJob?.cancel()
         automaticSyncJob = viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            handleSyncResult(scheduleRepository.syncCurrentSemester(owner))
+            val snapshot = _uiState.value
+            val result = if (!snapshot.settings.fastUpdate) {
+                scheduleRepository.syncCurrentSemester(owner)
+            } else {
+                val hasCachedSchedule = scheduleRepository.observeCachedDates(owner, displayRange()).first().isNotEmpty()
+                if (hasCachedSchedule) {
+                    scheduleRepository.syncSchedule(owner, fastUpdateRange(snapshot), force = true)
+                } else {
+                    scheduleRepository.syncCurrentSemester(owner, force = true)
+                }
+            }
+            handleSyncResult(result)
             _uiState.update { state ->
                 if (state.activeOwner?.type == owner.type && state.activeOwner?.id == owner.id) state.copy(isRefreshing = false) else state
             }
         }
+    }
+
+    private fun visibleRange(state: ScheduleUiState): DateRange =
+        if (state.selectedMode == ScheduleMode.DAY) DateRange(state.selectedDate, state.selectedDate)
+        else DateRange(state.selectedWeek, state.selectedWeek.plusDays(6))
+
+    private fun fastUpdateRange(state: ScheduleUiState): DateRange {
+        val currentDate = today()
+        val currentWeek = weekStart(currentDate, DayOfWeek.MONDAY)
+        val end = currentWeek.plusWeeks(FUTURE_WEEKS).plusDays(6)
+        val start = if (state.selectedMode == ScheduleMode.DAY) {
+            currentDate.minusDays(state.settings.previousDaysToKeep.toLong())
+        } else {
+            currentWeek.minusWeeks(state.settings.previousWeeksToKeep.toLong())
+        }
+        return DateRange(start, end)
     }
 
     private suspend fun rebuildWindowsOffMain() {

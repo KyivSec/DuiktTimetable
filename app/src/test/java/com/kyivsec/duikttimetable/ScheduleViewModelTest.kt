@@ -129,6 +129,78 @@ class ScheduleViewModelTest {
         viewModel.viewModelScope.cancel()
     }
 
+    @Test fun `fast update refreshes every available day on launch`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            settings = ScheduleSettings(fastUpdate = true, previousDaysToKeep = 10),
+            selectedGroupId = 1001,
+            selectedInstituteId = 1,
+            selectedCourse = 3,
+            selectedGroupName = "ПД-31",
+        ))
+
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher)
+        runCurrent()
+
+        assertEquals(0, repository.semesterRefreshes)
+        assertEquals(DateRange(LocalDate.of(2026, 8, 18), LocalDate.of(2026, 11, 22)), repository.lastRefreshedRange)
+        assertTrue(repository.lastScheduleForce)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `fast update refreshes every available week from toolbar`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            settings = ScheduleSettings(fastUpdate = true, startupMode = ScheduleMode.WEEK, previousWeeksToKeep = 3),
+            selectedGroupId = 1001,
+            selectedInstituteId = 1,
+            selectedCourse = 3,
+            selectedGroupName = "ПД-31",
+        ))
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher)
+        runCurrent()
+        repository.lastRefreshedRange = null
+
+        viewModel.refreshVisible()
+        runCurrent()
+
+        assertEquals(DateRange(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 11, 22)), repository.lastRefreshedRange)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `fast update runs full semester for an uncached owner`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(hasCachedSchedule = false)
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            settings = ScheduleSettings(fastUpdate = true),
+            selectedGroupId = 1001,
+            selectedInstituteId = 1,
+            selectedCourse = 3,
+            selectedGroupName = "ПД-31",
+        ))
+
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher)
+        runCurrent()
+
+        assertEquals(1, repository.semesterRefreshes)
+        assertTrue(repository.lastSemesterForce)
+        assertNull(repository.lastRefreshedRange)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `fast update is persisted and defaults to disabled`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository()
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher)
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.settings.fastUpdate)
+        viewModel.updateFastUpdate(true)
+        runCurrent()
+
+        assertTrue(preferences.stored.settings.fastUpdate)
+        viewModel.viewModelScope.cancel()
+    }
+
     @Test fun `full reload bypasses semester freshness`() = runTest(dispatcher) {
         val repository = FakeScheduleRepository()
         val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
@@ -219,9 +291,13 @@ private class FakeSettingsRepository(
     override suspend fun saveLastFullRefresh(epochMillis: Long) { stored = stored.copy(lastFullRefreshEpochMillis = epochMillis) }
 }
 
-private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryRepository, TeacherDirectoryRepository, StudentDirectoryRepository {
+private class FakeScheduleRepository(
+    private val hasCachedSchedule: Boolean = true,
+) : ScheduleRepository, GroupDirectoryRepository, TeacherDirectoryRepository, StudentDirectoryRepository {
     var refreshedDay: LocalDate? = null
     var refreshedWeek: LocalDate? = null
+    var lastRefreshedRange: DateRange? = null
+    var lastScheduleForce: Boolean = false
     var semesterRefreshes: Int = 0
     var lastSemesterForce: Boolean = false
     private val start = LocalDate.of(2026, 8, 24)
@@ -231,8 +307,11 @@ private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryReposit
     private val teacher = TeacherInfo(7, "Іваненко Іван Іванович", 42, "Кафедра ІТ")
     private val student = StudentInfo(9, "Петренко Петро Петрович", 1001, "ПД-31", 1, "ННІ ІТ", 3)
     override fun observeSchedule(owner: TimetableOwner, range: DateRange): Flow<List<ScheduleDay>> = flowOf(week.days)
-    override fun observeCachedDates(owner: TimetableOwner, range: DateRange): Flow<Set<LocalDate>> = flowOf(week.days.map { it.date }.toSet())
+    override fun observeCachedDates(owner: TimetableOwner, range: DateRange): Flow<Set<LocalDate>> =
+        flowOf(if (hasCachedSchedule) week.days.map { it.date }.toSet() else emptySet())
     override suspend fun syncSchedule(owner: TimetableOwner, range: DateRange, force: Boolean): SyncResult {
+        lastRefreshedRange = range
+        lastScheduleForce = force
         if (force && range.startInclusive == range.endInclusive) refreshedDay = range.startInclusive
         if (force && range.endInclusive == range.startInclusive.plusDays(6)) refreshedWeek = range.startInclusive
         return SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
