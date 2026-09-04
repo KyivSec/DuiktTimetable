@@ -9,6 +9,8 @@
     <string name="no_lessons">Немає пар</string>
     <string name="schedule_unavailable">Розклад недоступний</string>
     <string name="try_again">Спробувати ще</string>
+    <string name="error_title">Не вдалося оновити розклад</string>
+    <string name="dismiss">Зрозуміло</string>
     <string name="room_short">ауд. %1$s</string>
     <string name="week_number">%1$s · Тиждень %2$d</string>
     <plurals name="lesson_count">
@@ -72,10 +74,10 @@
 
     <string name="error_read_settings">Не вдалося прочитати налаштування</string>
     <string name="error_load_groups">Не вдалося завантажити список груп</string>
-    <string name="error_offline">Немає з’єднання. Показано збережений розклад</string>
-    <string name="error_timeout">Сервер розкладу не відповідає</string>
-    <string name="error_http">Сервер повернув помилку %1$d</string>
-    <string name="error_rejected_session">Сесію розкладу відхилено. Спробуйте ще раз</string>
-    <string name="error_source_format">Формат розкладу змінився</string>
-    <string name="error_database">Не вдалося зберегти розклад</string>
+    <string name="error_offline">Не вдалося отримати розклад через мережеве з’єднання. Перевірте інтернет — проблема, ймовірно, на вашому боці. Показано збережений розклад.</string>
+    <string name="error_timeout">Сайт розкладу не відповів вчасно. Ймовірно, проблема на боці сайту.</string>
+    <string name="error_http">Сайт розкладу повернув помилку %1$d. Ймовірно, проблема на боці сайту.</string>
+    <string name="error_rejected_session">Сайт розкладу відхилив сесію. Ймовірно, проблема на боці сайту. Спробуйте ще раз.</string>
+    <string name="error_source_format">Формат відповіді сайту розкладу змінився. Проблема на боці сайту.</string>
+    <string name="error_database">Не вдалося зберегти розклад на пристрої. Проблема, ймовірно, на боці застосунку або пристрою.</string>
 </resources>

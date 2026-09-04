@@ -215,7 +215,7 @@ class ScheduleViewModel(
                 lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis,
             ) }
             observeInstitutes()
-            groupDirectoryRepository.ensureInstitutes()
+            handleSyncResult(groupDirectoryRepository.ensureInstitutes())
             val instituteId = preferences.selectedInstituteId
             val course = preferences.selectedCourse
             if (preferences.selectedGroupId == null || instituteId == null || course == null) {
@@ -229,13 +229,19 @@ class ScheduleViewModel(
                 ) }
                 return@launch
             }
-            groupDirectoryRepository.ensureCourses(instituteId)
-            groupDirectoryRepository.ensureGroups(instituteId, course)
+            val coursesResult = groupDirectoryRepository.ensureCourses(instituteId)
+            handleSyncResult(coursesResult)
+            val groupsResult = groupDirectoryRepository.ensureGroups(instituteId, course)
+            handleSyncResult(groupsResult)
             val groups = groupDirectoryRepository.observeGroups(instituteId, course).first()
             val selected = groups.firstOrNull { it.id == preferences.selectedGroupId }
                 ?: groups.firstOrNull { it.name == preferences.selectedGroupName }
-            if (selected == null) {
+            if (selected == null && _uiState.value.errorMessage == null) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = UiMessage(R.string.error_load_groups)) }
+                return@launch
+            }
+            if (selected == null) {
+                _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
             preferencesRepository.saveSelectedGroup(selected)
@@ -243,7 +249,7 @@ class ScheduleViewModel(
             loadDirectoryBranch(selected.instituteId, selected.course, ensure = false)
             rebuildWindows()
             observeSchedule(selected)
-            syncSelectedGroup(selected, initial = true)
+            syncSelectedGroup(selected)
         }
     }
 
@@ -263,7 +269,7 @@ class ScheduleViewModel(
         coursesJob?.cancel()
         coursesJob = viewModelScope.launch {
             _uiState.update { it.copy(isCoursesLoading = true) }
-            if (ensure) groupDirectoryRepository.ensureCourses(instituteId)
+            if (ensure) handleSyncResult(groupDirectoryRepository.ensureCourses(instituteId))
             groupDirectoryRepository.observeCourses(instituteId).collect { values ->
                 _uiState.update { it.copy(directoryCourses = values, isCoursesLoading = false) }
             }
@@ -274,7 +280,7 @@ class ScheduleViewModel(
         groupsJob?.cancel()
         groupsJob = viewModelScope.launch {
             _uiState.update { it.copy(isGroupsLoading = true) }
-            if (ensure) groupDirectoryRepository.ensureGroups(instituteId, course)
+            if (ensure) handleSyncResult(groupDirectoryRepository.ensureGroups(instituteId, course))
             groupDirectoryRepository.observeGroups(instituteId, course).collect { values ->
                 _uiState.update { it.copy(directoryGroups = values, isGroupsLoading = false) }
             }
@@ -300,11 +306,11 @@ class ScheduleViewModel(
         )
     }
 
-    private fun syncSelectedGroup(group: GroupInfo, initial: Boolean = false) {
+    private fun syncSelectedGroup(group: GroupInfo) {
         automaticSyncJob?.cancel()
         automaticSyncJob = viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            handleSyncResult(scheduleRepository.syncCurrentSemester(group), initial)
+            handleSyncResult(scheduleRepository.syncCurrentSemester(group))
             _uiState.update { state ->
                 if (state.selectedGroup?.id == group.id) state.copy(isRefreshing = false) else state
             }
@@ -391,8 +397,8 @@ class ScheduleViewModel(
         scheduleRepository.pruneBefore(minOf(weekBoundary, dayBoundary))
     }
 
-    private fun handleSyncResult(result: SyncResult, initial: Boolean = false) {
-        if (result is SyncResult.Failure && (!initial || !result.hasCachedData)) showError(result.error)
+    private fun handleSyncResult(result: SyncResult) {
+        if (result is SyncResult.Failure) showError(result.error)
     }
     private fun showError(error: DataError) = _uiState.update { it.copy(errorMessage = when (error) {
         DataError.Offline -> UiMessage(R.string.error_offline)

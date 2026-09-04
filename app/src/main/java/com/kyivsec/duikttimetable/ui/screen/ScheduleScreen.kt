@@ -25,8 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -65,7 +64,6 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
     val context = LocalContext.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     var showGroupSheet by remember { mutableStateOf(false) }
     val localizedError = state.errorMessage?.let { message ->
         message.numberArgument?.let { stringResource(message.resourceId, it) }
@@ -76,13 +74,6 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
         if (state.needsGroupSelection) {
             viewModel.startGroupSelection()
             showGroupSheet = true
-        }
-    }
-
-    LaunchedEffect(localizedError) {
-        localizedError?.let { text ->
-            snackbarHostState.showSnackbar(text)
-            viewModel.dismissError()
         }
     }
 
@@ -106,7 +97,6 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
         },
     ) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) { padding ->
@@ -126,6 +116,19 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 ScheduleBody(state, viewModel)
             }
         }
+    }
+
+    localizedError?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissError,
+            title = { Text(stringResource(R.string.error_title)) },
+            text = { Text(message) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = viewModel::dismissError) {
+                    Text(stringResource(R.string.dismiss))
+                }
+            },
+        )
     }
 
     if (showGroupSheet) {

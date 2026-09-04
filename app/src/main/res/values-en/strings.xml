@@ -9,6 +9,8 @@
     <string name="no_lessons">No classes</string>
     <string name="schedule_unavailable">Timetable unavailable</string>
     <string name="try_again">Try again</string>
+    <string name="error_title">Could not update timetable</string>
+    <string name="dismiss">Got it</string>
     <string name="room_short">Room %1$s</string>
     <string name="week_number">%1$s · Week %2$d</string>
     <plurals name="lesson_count">
@@ -70,10 +72,10 @@
 
     <string name="error_read_settings">Could not read settings</string>
     <string name="error_load_groups">Could not load the group list</string>
-    <string name="error_offline">No connection. Showing the saved timetable</string>
-    <string name="error_timeout">The timetable server is not responding</string>
-    <string name="error_http">The server returned error %1$d</string>
-    <string name="error_rejected_session">The timetable session was rejected. Try again</string>
-    <string name="error_source_format">The timetable format has changed</string>
-    <string name="error_database">Could not save the timetable</string>
+    <string name="error_offline">Could not retrieve the timetable because of a network connection problem. Check your internet connection—the issue is likely on your side. Showing the saved timetable.</string>
+    <string name="error_timeout">The timetable website did not respond in time. The issue is likely on the website’s side.</string>
+    <string name="error_http">The timetable website returned error %1$d. The issue is likely on the website’s side.</string>
+    <string name="error_rejected_session">The timetable website rejected the session. The issue is likely on the website’s side. Try again.</string>
+    <string name="error_source_format">The timetable website’s response format changed. The issue is on the website’s side.</string>
+    <string name="error_database">Could not save the timetable on this device. The issue is likely with the app or device.</string>
 </resources>
