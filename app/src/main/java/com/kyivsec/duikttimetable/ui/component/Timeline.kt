@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -122,7 +123,13 @@ private fun CurrentTimeIndicator(time: LocalTime, y: Dp) {
         Canvas(Modifier.fillMaxWidth().height(12.dp).align(Alignment.Center)) {
             val railX = RailWidth.toPx()
             drawCircle(red, radius = 5.dp.toPx(), center = Offset(railX - 5.dp.toPx(), size.height / 2))
-            drawLine(red, Offset(railX - 5.dp.toPx(), size.height / 2), Offset(size.width, size.height / 2), 1.dp.toPx())
+            drawLine(
+                red,
+                Offset(railX - 5.dp.toPx(), size.height / 2),
+                Offset(size.width, size.height / 2),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 5.dp.toPx())),
+            )
         }
         Text(
             time.format(timelineTimeFormatter),
