@@ -225,7 +225,14 @@ private fun ScheduleBody(state: ScheduleUiState, viewModel: ScheduleViewModel) {
     Box(Modifier.fillMaxSize()) {
         when {
             state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-            state.weeks.isEmpty() || state.availableDates.isEmpty() -> EmptySchedule(onRetry = viewModel::retry)
+            state.weeks.isEmpty() || state.availableDates.isEmpty() -> EmptySchedule(
+                message = if (state.activeOccupation == null) {
+                    stringResource(R.string.choose_occupation)
+                } else {
+                    stringResource(R.string.schedule_unavailable)
+                },
+                onRetry = viewModel::retry.takeIf { state.activeOccupation != null },
+            )
             else -> ScheduleContent(state, now, viewModel)
         }
         val currentWeek = weekStart(now.toLocalDate(), java.time.DayOfWeek.MONDAY)
@@ -289,11 +296,13 @@ private fun ScheduleContent(state: ScheduleUiState, now: LocalDateTime, viewMode
 }
 
 @Composable
-private fun EmptySchedule(onRetry: () -> Unit) {
+private fun EmptySchedule(message: String, onRetry: (() -> Unit)?) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.schedule_unavailable), style = MaterialTheme.typography.titleMedium)
-            androidx.compose.material3.TextButton(onClick = onRetry) { Text(stringResource(R.string.try_again)) }
+            Text(message, style = MaterialTheme.typography.titleMedium)
+            onRetry?.let {
+                androidx.compose.material3.TextButton(onClick = it) { Text(stringResource(R.string.try_again)) }
+            }
         }
     }
 }
