@@ -43,7 +43,13 @@ fun LessonDetailsSheet(lesson: Lesson, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
             Text(lesson.subject, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Text(stringResource(lesson.type.nameResource()), color = lesson.type.accentColor(), style = MaterialTheme.typography.labelLarge)
+            Text(
+                stringResource(lesson.type.nameResource()),
+                modifier = Modifier.padding(top = 6.dp),
+                color = lesson.type.accentColor(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Normal,
+            )
             Spacer(Modifier.height(16.dp))
             HorizontalDivider()
             DetailRow(Icons.Rounded.AccessTime, stringResource(R.string.detail_time), "${lesson.startTime.format(timeFormatter)} – ${lesson.endTime.format(timeFormatter)}")
@@ -52,7 +58,6 @@ fun LessonDetailsSheet(lesson: Lesson, onDismiss: () -> Unit) {
             lesson.teacher?.let { DetailRow(Icons.Rounded.Person, stringResource(R.string.detail_teacher), it) }
             lesson.subgroup?.let { DetailRow(Icons.Rounded.Groups, stringResource(R.string.detail_subgroup), it) }
             lesson.sourceGroups?.let { DetailRow(Icons.Rounded.Groups, stringResource(R.string.detail_groups), it) }
-            lesson.rawType?.let { DetailRow(Icons.Rounded.Info, stringResource(R.string.detail_source_type), it) }
             lesson.chairName?.let { DetailRow(Icons.Rounded.Business, stringResource(R.string.detail_chair), it) }
             lesson.notes?.let { DetailRow(Icons.Rounded.Info, stringResource(R.string.detail_note), it) }
             lesson.onlineUrl?.let { DetailRow(Icons.Rounded.Link, stringResource(R.string.detail_online_link), it) }

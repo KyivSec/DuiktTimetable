@@ -1,6 +1,7 @@
 package com.kyivsec.duikttimetable.ui.component
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +22,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.stringResource
 import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.ScheduleDay
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.Duration
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -64,6 +67,19 @@ fun Timeline(day: ScheduleDay, now: LocalDateTime, onLessonClick: (Lesson) -> Un
     }
     val indicatorMinutes = now.toLocalTime().toMinuteOfDay()
     val showIndicator = selectedIsToday && indicatorMinutes in startMinutes..endMinutes
+    val indicatorY = if (showIndicator) {
+        val currentLesson = day.lessons.firstOrNull { lesson ->
+            !now.toLocalTime().isBefore(lesson.startTime) && !now.toLocalTime().isAfter(lesson.endTime)
+        }
+        currentLesson?.let { lesson ->
+            val duration = lesson.endTime.toMinuteOfDay() - lesson.startTime.toMinuteOfDay()
+            val elapsed = Duration.between(lesson.startTime, now.toLocalTime()).toMillis()
+            val total = Duration.between(lesson.startTime, lesson.endTime).toMillis().coerceAtLeast(1L)
+            val progress = (elapsed.toFloat() / total).coerceIn(0f, 1f)
+            val cardTop = TimelineTopPadding + MinuteHeight * (lesson.startTime.toMinuteOfDay() - startMinutes) + 4.dp
+            cardTop + lessonCardHeight(duration) * progress
+        } ?: TimelineTopPadding + MinuteHeight * (indicatorMinutes - startMinutes)
+    } else 0.dp
     Box(modifier.fillMaxSize().verticalScroll(scrollState)) {
         Box(Modifier.fillMaxWidth().height(TimelineTopPadding + MinuteHeight * totalMinutes + 12.dp).padding(end = 12.dp)) {
             val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
@@ -89,11 +105,11 @@ fun Timeline(day: ScheduleDay, now: LocalDateTime, onLessonClick: (Lesson) -> Un
                     isPast = day.date.isBefore(now.toLocalDate()) ||
                         (day.date == now.toLocalDate() && !lesson.endTime.isAfter(now.toLocalTime())),
                     modifier = Modifier.padding(start = RailWidth + 4.dp).offset(y = top).fillMaxWidth()
-                        .height((MinuteHeight * duration - 8.dp).coerceAtLeast(72.dp)),
+                        .height(lessonCardHeight(duration)),
                 )
             }
             if (showIndicator) {
-                CurrentTimeIndicator(now.toLocalTime(), TimelineTopPadding + MinuteHeight * (indicatorMinutes - startMinutes))
+                CurrentTimeIndicator(now.toLocalTime(), indicatorY)
             }
         }
     }
@@ -102,18 +118,23 @@ fun Timeline(day: ScheduleDay, now: LocalDateTime, onLessonClick: (Lesson) -> Un
 @Composable
 private fun CurrentTimeIndicator(time: LocalTime, y: Dp) {
     val red = Color(0xFFFF5D5D)
-    Text(
-        time.format(timelineTimeFormatter),
-        modifier = Modifier.offset(y = y - 18.dp).padding(start = 10.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = red,
-    )
-    Canvas(Modifier.fillMaxWidth().height(12.dp).offset(y = y - 6.dp)) {
-        val railX = RailWidth.toPx()
-        drawCircle(red, radius = 5.dp.toPx(), center = Offset(railX - 5.dp.toPx(), size.height / 2))
-        drawLine(red, Offset(railX - 5.dp.toPx(), size.height / 2), Offset(size.width, size.height / 2), 1.dp.toPx())
+    Box(Modifier.fillMaxWidth().height(28.dp).offset(y = y - 14.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(12.dp).align(Alignment.Center)) {
+            val railX = RailWidth.toPx()
+            drawCircle(red, radius = 5.dp.toPx(), center = Offset(railX - 5.dp.toPx(), size.height / 2))
+            drawLine(red, Offset(railX - 5.dp.toPx(), size.height / 2), Offset(size.width, size.height / 2), 1.dp.toPx())
+        }
+        Text(
+            time.format(timelineTimeFormatter),
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 10.dp)
+                .background(red, RoundedCornerShape(5.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+        )
     }
 }
+
+private fun lessonCardHeight(durationMinutes: Int): Dp = (MinuteHeight * durationMinutes - 8.dp).coerceAtLeast(72.dp)
 
 private fun LocalTime.toMinuteOfDay(): Int = hour * 60 + minute
 private val timelineTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

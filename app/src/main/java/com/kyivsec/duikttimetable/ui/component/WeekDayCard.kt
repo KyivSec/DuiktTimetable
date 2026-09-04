@@ -103,12 +103,12 @@ private fun WeekLessonRow(lesson: Lesson, isPast: Boolean, onClick: () -> Unit) 
         Modifier.fillMaxWidth().graphicsLayer { alpha = if (isPast) 0.55f else 1f }
             .clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ClassNumberBadge(lesson)
-        Spacer(Modifier.width(10.dp))
         Text("${lesson.startTime.format(weekTimeFormatter)} – ${lesson.endTime.format(weekTimeFormatter)}", Modifier.width(98.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(lesson.subject, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        lesson.room?.let { Text(stringResource(R.string.room_short, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+        lesson.room?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
     }
 }
 
