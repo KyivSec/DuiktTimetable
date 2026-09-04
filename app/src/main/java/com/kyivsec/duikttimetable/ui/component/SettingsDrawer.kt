@@ -59,6 +59,7 @@ fun SettingsDrawer(
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onHideClassesInWeekViewChange: (Boolean) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
+    onChangeOccupation: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     val locale = LocalConfiguration.current.locales[0]
@@ -110,6 +111,9 @@ fun SettingsDrawer(
                     } ?: stringResource(R.string.never_fully_refreshed),
                     Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                androidx.compose.material3.TextButton(onClick = onChangeOccupation, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.change_occupation))
+                }
             }
             HorizontalDivider()
             Row(

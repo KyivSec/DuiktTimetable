@@ -49,11 +49,133 @@ class DuiktScheduleClient(
         RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
     }
 
+    suspend fun fetchChairs(): List<RemoteOption> = sessionMutex.withLock {
+        filterParser.chairs(getTeacherInitialPage(force = true))
+    }
+
+    suspend fun fetchTeachers(chairId: Long): List<RemoteOption> = sessionMutex.withLock {
+        filterParser.teachers(postTeacherForm(chairId, null, null, type = 0))
+    }
+
+    suspend fun fetchTeacherSchedule(chairId: Long, teacherId: Long, range: DateRange): RemoteSchedule = sessionMutex.withLock {
+        val html = postTeacherForm(chairId, teacherId, range, type = 1)
+        RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
+    }
+
+    suspend fun fetchStudents(facultyId: Long, course: Int, groupId: Long): List<RemoteOption> = sessionMutex.withLock {
+        filterParser.students(postStudentForm(facultyId, course, groupId, null, null, type = 0))
+    }
+
+    suspend fun fetchStudentInstitutes(): List<RemoteOption> = sessionMutex.withLock {
+        filterParser.faculties(getStudentInitialPage(force = true))
+    }
+
+    suspend fun fetchStudentCourses(facultyId: Long): List<Int> = sessionMutex.withLock {
+        filterParser.courses(postStudentForm(facultyId, null, null, null, null, type = 0))
+    }
+
+    suspend fun fetchStudentGroups(facultyId: Long, course: Int): List<RemoteOption> = sessionMutex.withLock {
+        filterParser.groups(postStudentForm(facultyId, course, null, null, null, type = 0))
+    }
+
+    suspend fun fetchStudentSchedule(
+        facultyId: Long,
+        course: Int,
+        groupId: Long,
+        studentId: Long,
+        range: DateRange,
+    ): RemoteSchedule = sessionMutex.withLock {
+        val html = postStudentForm(facultyId, course, groupId, studentId, range, type = 1)
+        RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
+    }
+
     private suspend fun getInitialPage(force: Boolean = false): String {
         if (!force && csrf != null) return ""
         val html = execute(Request.Builder().url("$baseUrl/time-table/group").get().build())
         csrf = filterParser.csrf(html)
         return html
+    }
+
+    private suspend fun getTeacherInitialPage(force: Boolean = false): String {
+        if (!force && csrf != null) return ""
+        val html = execute(Request.Builder().url("$baseUrl/time-table/teacher").get().build())
+        csrf = filterParser.csrf(html)
+        return html
+    }
+
+    private suspend fun getStudentInitialPage(force: Boolean = false): String {
+        if (!force && csrf != null) return ""
+        val html = execute(Request.Builder().url("$baseUrl/time-table/student?type=0").get().build())
+        csrf = filterParser.csrf(html)
+        return html
+    }
+
+    private suspend fun postStudentForm(
+        facultyId: Long,
+        course: Int?,
+        groupId: Long?,
+        studentId: Long?,
+        range: DateRange?,
+        type: Int,
+        replayed: Boolean = false,
+    ): String {
+        if (csrf == null) getStudentInitialPage(force = true)
+        val body = FormBody.Builder()
+            .add("_csrf-frontend", csrf.orEmpty())
+            .add("TimeTableForm[facultyId]", facultyId.toString())
+            .add("TimeTableForm[course]", course?.toString().orEmpty())
+            .add("TimeTableForm[groupId]", groupId?.toString().orEmpty())
+            .add("TimeTableForm[studentId]", studentId?.toString().orEmpty())
+            .apply {
+                if (range != null) {
+                    add("TimeTableForm[dateStart]", range.startInclusive.format(SOURCE_DATE_FORMAT))
+                    add("TimeTableForm[dateEnd]", range.endInclusive.format(SOURCE_DATE_FORMAT))
+                    add("TimeTableForm[indicationDays]", "5")
+                    add("time-table-type", "1")
+                }
+            }.build()
+        val request = Request.Builder().url("$baseUrl/time-table/student?type=$type").post(body).build()
+        return try {
+            execute(request).also { csrf = filterParser.csrf(it) }
+        } catch (error: HttpStatusException) {
+            if (error.statusCode == 403 && !replayed) {
+                csrf = null
+                getStudentInitialPage(force = true)
+                postStudentForm(facultyId, course, groupId, studentId, range, type, replayed = true)
+            } else if (error.statusCode == 403) throw RejectedSessionException() else throw error
+        }
+    }
+
+    private suspend fun postTeacherForm(
+        chairId: Long,
+        teacherId: Long?,
+        range: DateRange?,
+        type: Int,
+        replayed: Boolean = false,
+    ): String {
+        if (csrf == null) getTeacherInitialPage(force = true)
+        val body = FormBody.Builder()
+            .add("_csrf-frontend", csrf.orEmpty())
+            .add("TimeTableForm[chairId]", chairId.toString())
+            .add("TimeTableForm[teacherId]", teacherId?.toString().orEmpty())
+            .apply {
+                if (range != null) {
+                    add("TimeTableForm[dateStart]", range.startInclusive.format(SOURCE_DATE_FORMAT))
+                    add("TimeTableForm[dateEnd]", range.endInclusive.format(SOURCE_DATE_FORMAT))
+                    add("TimeTableForm[indicationDays]", "5")
+                    add("time-table-type", "1")
+                }
+            }.build()
+        val request = Request.Builder().url("$baseUrl/time-table/teacher?type=$type").post(body).build()
+        return try {
+            execute(request).also { csrf = filterParser.csrf(it) }
+        } catch (error: HttpStatusException) {
+            if (error.statusCode == 403 && !replayed) {
+                csrf = null
+                getTeacherInitialPage(force = true)
+                postTeacherForm(chairId, teacherId, range, type, replayed = true)
+            } else if (error.statusCode == 403) throw RejectedSessionException() else throw error
+        }
     }
 
     private suspend fun postForm(

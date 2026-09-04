@@ -49,6 +49,10 @@ import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ScheduleUiState
 import com.kyivsec.duikttimetable.ui.component.DaySchedule
 import com.kyivsec.duikttimetable.ui.component.GroupSelectorSheet
+import com.kyivsec.duikttimetable.ui.component.OccupationSelectorSheet
+import com.kyivsec.duikttimetable.ui.component.TeacherSelectorSheet
+import com.kyivsec.duikttimetable.ui.component.StudentSelectorSheet
+import com.kyivsec.duikttimetable.model.Occupation
 import com.kyivsec.duikttimetable.ui.component.LessonDetailsSheet
 import com.kyivsec.duikttimetable.ui.component.ScheduleModeSelector
 import com.kyivsec.duikttimetable.ui.component.SettingsDrawer
@@ -65,15 +69,26 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showGroupSheet by remember { mutableStateOf(false) }
+    var showTeacherSheet by remember { mutableStateOf(false) }
+    var showOccupationSheet by remember { mutableStateOf(false) }
+    var showStudentSheet by remember { mutableStateOf(false) }
     val localizedError = state.errorMessage?.let { message ->
         message.numberArgument?.let { stringResource(message.resourceId, it) }
             ?: stringResource(message.resourceId)
     }
 
-    LaunchedEffect(state.needsGroupSelection) {
-        if (state.needsGroupSelection) {
+    LaunchedEffect(state.needsOccupationSelection, state.needsGroupSelection, state.needsTeacherSelection, state.needsStudentSelection) {
+        if (state.needsOccupationSelection) {
+            showOccupationSheet = true
+        } else if (state.needsGroupSelection) {
             viewModel.startGroupSelection()
             showGroupSheet = true
+        } else if (state.needsTeacherSelection) {
+            viewModel.startTeacherSelection()
+            showTeacherSheet = true
+        } else if (state.needsStudentSelection) {
+            viewModel.startStudentSelection()
+            showStudentSheet = true
         }
     }
 
@@ -93,6 +108,10 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
                 onFullReload = viewModel::fullReload,
+                onChangeOccupation = {
+                    scope.launch { drawerState.close() }
+                    showOccupationSheet = true
+                },
             )
         },
     ) {
@@ -105,10 +124,16 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             ) {
                 Surface(color = MaterialTheme.colorScheme.background, tonalElevation = 1.dp) {
                     TopScheduleBar(
-                        groupName = state.selectedGroup?.name ?: stringResource(R.string.select_group),
+                        groupName = state.activeOwner?.displayName ?: stringResource(R.string.select_timetable_owner),
                         isRefreshing = state.isRefreshing,
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        onGroupClick = { viewModel.startGroupSelection(); showGroupSheet = true },
+                        onGroupClick = {
+                            when (state.activeOccupation) {
+                                Occupation.TEACHER -> { viewModel.startTeacherSelection(); showTeacherSheet = true }
+                                Occupation.STUDENT -> { viewModel.startStudentSelection(); showStudentSheet = true }
+                                else -> { viewModel.startGroupSelection(); showGroupSheet = true }
+                            }
+                        },
                         onRefreshClick = viewModel::refreshVisible,
                     )
                 }
@@ -146,6 +171,49 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             onGroupSelected = viewModel::selectDraftGroup,
             onApply = { viewModel.applyGroup(it); showGroupSheet = false },
             onDismiss = { showGroupSheet = false },
+        )
+    }
+    if (showTeacherSheet) {
+        TeacherSelectorSheet(
+            chairs = state.chairs, teachers = state.directoryTeachers,
+            draftChairId = state.draftChairId, draftTeacher = state.draftTeacher,
+            isLoading = state.isTeachersLoading,
+            onChairSelected = viewModel::selectDraftChair,
+            onTeacherSelected = viewModel::selectDraftTeacher,
+            onApply = { viewModel.applyTeacher(it); showTeacherSheet = false },
+            onDismiss = { showTeacherSheet = false },
+        )
+    }
+    if (showStudentSheet) {
+        StudentSelectorSheet(
+            institutes = state.institutes, courses = state.directoryCourses,
+            groups = state.directoryGroups, students = state.directoryStudents,
+            draftInstituteId = state.draftInstituteId, draftCourse = state.draftCourse,
+            draftGroup = state.draftGroup, draftStudent = state.draftStudent,
+            isCoursesLoading = state.isCoursesLoading, isGroupsLoading = state.isGroupsLoading,
+            isStudentsLoading = state.isStudentsLoading,
+            onInstituteSelected = viewModel::selectDraftStudentInstitute,
+            onCourseSelected = viewModel::selectDraftStudentCourse,
+            onGroupSelected = viewModel::selectDraftStudentGroup,
+            onStudentSelected = viewModel::selectDraftStudent,
+            onApply = { viewModel.applyStudent(it); showStudentSheet = false },
+            onDismiss = { showStudentSheet = false },
+        )
+    }
+    if (showOccupationSheet) {
+        OccupationSelectorSheet(
+            onSelected = { occupation ->
+                showOccupationSheet = false
+                val needsSelection = viewModel.selectOccupation(occupation)
+                if (needsSelection) {
+                    when (occupation) {
+                        Occupation.GROUP -> showGroupSheet = true
+                        Occupation.STUDENT -> showStudentSheet = true
+                        Occupation.TEACHER -> showTeacherSheet = true
+                    }
+                }
+            },
+            onDismiss = { if (state.activeOwner != null) showOccupationSheet = false },
         )
     }
     LessonDetailsHost(viewModel)

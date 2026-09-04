@@ -2,6 +2,14 @@
     <string name="app_name">Розклад ДУІКТ</string>
     <string name="schedule">Розклад</string>
     <string name="select_group">Оберіть групу</string>
+    <string name="select_timetable_owner">Оберіть розклад</string>
+    <string name="choose_occupation">Оберіть, чий розклад показувати</string>
+    <string name="teacher">Викладач</string>
+    <string name="student">Студент</string>
+    <string name="select_student">Оберіть студента</string>
+    <string name="select_teacher">Оберіть викладача</string>
+    <string name="chair">Кафедра</string>
+    <string name="change_occupation">Змінити роль</string>
     <string name="day">День</string>
     <string name="week">Тиждень</string>
     <string name="hide_classes_in_week_view">Приховувати пари в режимі тижня</string>
@@ -74,6 +82,8 @@
 
     <string name="error_read_settings">Не вдалося прочитати налаштування</string>
     <string name="error_load_groups">Не вдалося завантажити список груп</string>
+    <string name="error_load_teachers">Не вдалося завантажити список викладачів</string>
+    <string name="error_load_students">Не вдалося завантажити список студентів</string>
     <string name="error_offline">Не вдалося отримати розклад через мережеве з’єднання. Перевірте інтернет — проблема, ймовірно, на вашому боці. Показано збережений розклад.</string>
     <string name="error_timeout">Сайт розкладу не відповів вчасно. Ймовірно, проблема на боці сайту.</string>
     <string name="error_http">Сайт розкладу повернув помилку %1$d. Ймовірно, проблема на боці сайту.</string>

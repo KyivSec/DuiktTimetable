@@ -8,6 +8,8 @@ import com.kyivsec.duikttimetable.data.DateRange
 import com.kyivsec.duikttimetable.data.GroupDirectoryRepository
 import com.kyivsec.duikttimetable.data.ScheduleRepository
 import com.kyivsec.duikttimetable.data.SettingsRepository
+import com.kyivsec.duikttimetable.data.TeacherDirectoryRepository
+import com.kyivsec.duikttimetable.data.StudentDirectoryRepository
 import com.kyivsec.duikttimetable.data.SyncResult
 import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.Lesson
@@ -18,6 +20,10 @@ import com.kyivsec.duikttimetable.model.ScheduleUiState
 import com.kyivsec.duikttimetable.model.ScheduleWeek
 import com.kyivsec.duikttimetable.model.ThemeMode
 import com.kyivsec.duikttimetable.model.UiMessage
+import com.kyivsec.duikttimetable.model.Occupation
+import com.kyivsec.duikttimetable.model.TeacherInfo
+import com.kyivsec.duikttimetable.model.TimetableOwner
+import com.kyivsec.duikttimetable.model.StudentInfo
 import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.util.weekStart
 import kotlinx.coroutines.Job
@@ -45,6 +51,8 @@ class ScheduleViewModel(
     private val preferencesRepository: SettingsRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val teacherDirectoryRepository: TeacherDirectoryRepository = EmptyTeacherDirectoryRepository,
+    private val studentDirectoryRepository: StudentDirectoryRepository = EmptyStudentDirectoryRepository,
 ) : ViewModel() {
     private val initialDate = today()
     private val _uiState = MutableStateFlow(ScheduleUiState(
@@ -64,6 +72,12 @@ class ScheduleViewModel(
     private var institutesJob: Job? = null
     private var coursesJob: Job? = null
     private var groupsJob: Job? = null
+    private var chairsJob: Job? = null
+    private var teachersJob: Job? = null
+    private var studentsJob: Job? = null
+    private var rememberedGroup: TimetableOwner.Group? = null
+    private var rememberedTeacher: TimetableOwner.Teacher? = null
+    private var rememberedStudent: TimetableOwner.Student? = null
 
     init {
         load()
@@ -126,16 +140,101 @@ class ScheduleViewModel(
         loadDirectoryBranch(instituteId, course)
     }
 
+    fun startOccupationSelection() = _uiState.update { it.copy(needsOccupationSelection = true) }
+
+    fun selectOccupation(occupation: Occupation): Boolean {
+        val remembered = when (occupation) {
+            Occupation.GROUP -> rememberedGroup
+            Occupation.STUDENT -> rememberedStudent
+            Occupation.TEACHER -> rememberedTeacher
+        }
+        if (remembered != null) {
+            applyOwner(remembered)
+            return false
+        }
+        viewModelScope.launch { preferencesRepository.saveOccupation(occupation) }
+        _uiState.update { state -> state.copy(
+            activeOccupation = occupation,
+            needsOccupationSelection = false,
+            needsGroupSelection = occupation == Occupation.GROUP && state.activeOwner !is TimetableOwner.Group,
+            needsTeacherSelection = occupation == Occupation.TEACHER && state.activeOwner !is TimetableOwner.Teacher,
+            needsStudentSelection = occupation == Occupation.STUDENT && state.activeOwner !is TimetableOwner.Student,
+        ) }
+        when (occupation) {
+            Occupation.GROUP -> startGroupSelection()
+            Occupation.STUDENT -> startStudentSelection()
+            Occupation.TEACHER -> startTeacherSelection()
+        }
+        return true
+    }
+
+    fun startStudentSelection() {
+        observeInstitutes()
+        viewModelScope.launch { handleSyncResult(studentDirectoryRepository.ensureStudentInstitutes()) }
+        val selected = (_uiState.value.activeOwner as? TimetableOwner.Student)?.student
+        if (selected == null) {
+            _uiState.update { it.copy(
+                draftInstituteId = null, draftCourse = null, draftGroup = null, draftStudent = null,
+                directoryCourses = emptyList(), directoryGroups = emptyList(), directoryStudents = emptyList(),
+            ) }
+            return
+        }
+        val group = GroupInfo(
+            selected.groupId, selected.groupName, selected.instituteId, selected.instituteName, selected.course,
+        )
+        _uiState.update { it.copy(
+            draftInstituteId = selected.instituteId, draftCourse = selected.course,
+            draftGroup = group, draftStudent = selected,
+        ) }
+        loadStudentDirectoryBranch(selected.instituteId, selected.course)
+        loadStudents(group)
+    }
+
+    fun selectDraftStudentInstitute(instituteId: Long) {
+        if (_uiState.value.draftInstituteId == instituteId) return
+        _uiState.update { it.copy(draftInstituteId = instituteId, draftCourse = null, draftGroup = null, draftStudent = null, directoryCourses = emptyList(), directoryGroups = emptyList(), directoryStudents = emptyList()) }
+        loadStudentCourses(instituteId)
+    }
+
+    fun selectDraftStudentCourse(course: Int) {
+        val instituteId = _uiState.value.draftInstituteId ?: return
+        if (_uiState.value.draftCourse == course) return
+        _uiState.update { it.copy(draftCourse = course, draftGroup = null, draftStudent = null, directoryGroups = emptyList(), directoryStudents = emptyList()) }
+        loadStudentGroups(instituteId, course)
+    }
+
+    fun startTeacherSelection() {
+        observeChairs()
+        viewModelScope.launch { handleSyncResult(teacherDirectoryRepository.ensureChairs()) }
+        val selected = (_uiState.value.activeOwner as? TimetableOwner.Teacher)?.teacher
+        _uiState.update { it.copy(
+            draftChairId = selected?.chairId,
+            draftTeacher = selected,
+            directoryTeachers = emptyList(),
+        ) }
+        selected?.chairId?.let(::loadTeachers)
+    }
+
+    fun selectDraftChair(chairId: Long) {
+        if (_uiState.value.draftChairId == chairId) return
+        _uiState.update { it.copy(draftChairId = chairId, draftTeacher = null, directoryTeachers = emptyList()) }
+        loadTeachers(chairId)
+    }
+
+    fun selectDraftTeacher(teacher: TeacherInfo) = _uiState.update { it.copy(draftTeacher = teacher) }
+
+    fun applyTeacher(teacher: TeacherInfo) = applyOwner(TimetableOwner.Teacher(teacher))
+
     fun selectDraftInstitute(instituteId: Long) {
         if (_uiState.value.draftInstituteId == instituteId) return
-        _uiState.update { it.copy(draftInstituteId = instituteId, draftCourse = null, draftGroup = null, directoryCourses = emptyList(), directoryGroups = emptyList()) }
+        _uiState.update { it.copy(draftInstituteId = instituteId, draftCourse = null, draftGroup = null, draftStudent = null, directoryCourses = emptyList(), directoryGroups = emptyList(), directoryStudents = emptyList()) }
         loadCourses(instituteId)
     }
 
     fun selectDraftCourse(course: Int) {
         val instituteId = _uiState.value.draftInstituteId ?: return
         if (_uiState.value.draftCourse == course) return
-        _uiState.update { it.copy(draftCourse = course, draftGroup = null, directoryGroups = emptyList()) }
+        _uiState.update { it.copy(draftCourse = course, draftGroup = null, draftStudent = null, directoryGroups = emptyList(), directoryStudents = emptyList()) }
         loadGroups(instituteId, course)
     }
 
@@ -143,19 +242,51 @@ class ScheduleViewModel(
         if (_uiState.value.draftGroup?.id != group.id) _uiState.update { it.copy(draftGroup = group) }
     }
 
+    fun selectDraftStudentGroup(group: GroupInfo) {
+        _uiState.update { it.copy(draftGroup = group, draftStudent = null, directoryStudents = emptyList()) }
+        loadStudents(group)
+    }
+
+    fun selectDraftStudent(student: StudentInfo) = _uiState.update { it.copy(draftStudent = student) }
+
+    fun applyStudent(student: StudentInfo) = applyOwner(TimetableOwner.Student(student))
+
     fun applyGroup(group: GroupInfo) {
-        if (_uiState.value.selectedGroup?.id == group.id) return
+        applyOwner(TimetableOwner.Group(group))
+    }
+
+    private fun applyOwner(owner: TimetableOwner) {
+        val current = _uiState.value.activeOwner
+        if (current?.type == owner.type && current.id == owner.id) return
+        scheduleJob?.cancel()
+        automaticSyncJob?.cancel()
         allDays = emptyList()
+        when (owner) {
+            is TimetableOwner.Group -> rememberedGroup = owner
+            is TimetableOwner.Student -> rememberedStudent = owner
+            is TimetableOwner.Teacher -> rememberedTeacher = owner
+        }
+        val currentDate = today()
         _uiState.update { it.copy(
-            selectedGroup = group,
-            draftGroup = group,
+            activeOwner = owner,
+            activeOccupation = owner.type,
+            selectedGroup = (owner as? TimetableOwner.Group)?.group,
+            draftGroup = (owner as? TimetableOwner.Group)?.group ?: it.draftGroup,
+            draftTeacher = (owner as? TimetableOwner.Teacher)?.teacher ?: it.draftTeacher,
+            draftStudent = (owner as? TimetableOwner.Student)?.student ?: it.draftStudent,
             needsGroupSelection = false,
+            needsTeacherSelection = false,
+            needsStudentSelection = false,
+            needsOccupationSelection = false,
+            selectedDate = currentDate,
+            selectedWeek = weekStart(currentDate, DayOfWeek.MONDAY),
             expandedDates = emptySet(),
             expandedDatesInitialized = false,
         ) }
-        viewModelScope.launch { preferencesRepository.saveSelectedGroup(group) }
-        observeSchedule(group)
-        syncSelectedGroup(group)
+        viewModelScope.launch { preferencesRepository.saveSelectedOwner(owner) }
+        rebuildWindows()
+        observeSchedule(owner)
+        syncSelectedOwner(owner)
     }
 
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
@@ -166,27 +297,45 @@ class ScheduleViewModel(
 
     fun refreshVisible() {
         val snapshot = _uiState.value
-        val group = snapshot.selectedGroup ?: return
+        val owner = snapshot.activeOwner ?: return
         if (snapshot.isRefreshing || snapshot.isFullReloading) return
         val range = if (snapshot.selectedMode == ScheduleMode.DAY) DateRange(snapshot.selectedDate, snapshot.selectedDate)
         else DateRange(snapshot.selectedWeek, snapshot.selectedWeek.plusDays(6))
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            handleSyncResult(scheduleRepository.syncSchedule(group, range, force = true))
+            handleSyncResult(scheduleRepository.syncSchedule(owner, range, force = true))
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
     fun fullReload() {
         val snapshot = _uiState.value
-        val group = snapshot.selectedGroup ?: return
+        val owner = snapshot.activeOwner ?: return
         if (snapshot.isRefreshing || snapshot.isFullReloading) return
         viewModelScope.launch {
             _uiState.update { it.copy(isFullReloading = true) }
-            groupDirectoryRepository.ensureInstitutes(force = true)
-            groupDirectoryRepository.ensureCourses(group.instituteId, force = true)
-            groupDirectoryRepository.ensureGroups(group.instituteId, group.course, force = true)
-            when (val result = scheduleRepository.syncCurrentSemester(group)) {
+            when (owner) {
+                is TimetableOwner.Group -> {
+                    groupDirectoryRepository.ensureInstitutes(force = true)
+                    groupDirectoryRepository.ensureCourses(owner.group.instituteId, force = true)
+                    groupDirectoryRepository.ensureGroups(owner.group.instituteId, owner.group.course, force = true)
+                }
+                is TimetableOwner.Student -> {
+                    val student = owner.student
+                    studentDirectoryRepository.ensureStudentInstitutes(force = true)
+                    studentDirectoryRepository.ensureStudentCourses(student.instituteId, force = true)
+                    studentDirectoryRepository.ensureStudentGroups(student.instituteId, student.course, force = true)
+                    studentDirectoryRepository.ensureStudents(
+                        GroupInfo(student.groupId, student.groupName, student.instituteId, student.instituteName, student.course),
+                        force = true,
+                    )
+                }
+                is TimetableOwner.Teacher -> {
+                    teacherDirectoryRepository.ensureChairs(force = true)
+                    teacherDirectoryRepository.ensureTeachers(owner.teacher.chairId, force = true)
+                }
+            }
+            when (val result = scheduleRepository.syncCurrentSemester(owner)) {
                 is SyncResult.Success -> {
                     preferencesRepository.saveLastFullRefresh(result.completedAt.toEpochMilli())
                     _uiState.update { it.copy(lastFullRefreshEpochMillis = result.completedAt.toEpochMilli()) }
@@ -208,12 +357,48 @@ class ScheduleViewModel(
                 _uiState.update { state -> state.copy(isLoading = false, errorMessage = UiMessage(R.string.error_read_settings)) }
                 return@launch
             }
+            if (preferences.selectedGroupId != null && preferences.selectedInstituteId != null && preferences.selectedCourse != null && preferences.selectedGroupName != null) {
+                rememberedGroup = TimetableOwner.Group(GroupInfo(
+                    preferences.selectedGroupId, preferences.selectedGroupName, preferences.selectedInstituteId,
+                    "", preferences.selectedCourse,
+                ))
+            }
+            if (preferences.selectedTeacherId != null && preferences.selectedChairId != null && preferences.selectedTeacherName != null) {
+                rememberedTeacher = TimetableOwner.Teacher(TeacherInfo(
+                    preferences.selectedTeacherId, preferences.selectedTeacherName, preferences.selectedChairId,
+                    preferences.selectedChairName.orEmpty(),
+                ))
+            }
+            if (
+                preferences.selectedStudentId != null && preferences.selectedStudentName != null &&
+                preferences.selectedStudentGroupId != null && preferences.selectedStudentGroupName != null &&
+                preferences.selectedStudentInstituteId != null && preferences.selectedStudentCourse != null
+            ) {
+                rememberedStudent = TimetableOwner.Student(StudentInfo(
+                    preferences.selectedStudentId, preferences.selectedStudentName,
+                    preferences.selectedStudentGroupId, preferences.selectedStudentGroupName,
+                    preferences.selectedStudentInstituteId, preferences.selectedStudentInstituteName.orEmpty(),
+                    preferences.selectedStudentCourse,
+                ))
+            }
             _uiState.update { it.copy(
                 settings = preferences.settings,
                 selectedMode = preferences.settings.startupMode,
                 weekSectionsStartExpanded = !preferences.settings.hideClassesInWeekView,
                 lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis,
+                activeOccupation = preferences.occupation,
             ) }
+            when (preferences.occupation) {
+                Occupation.TEACHER -> {
+                    loadStoredTeacher(preferences)
+                    return@launch
+                }
+                Occupation.STUDENT -> {
+                    loadStoredStudent(preferences)
+                    return@launch
+                }
+                else -> Unit
+            }
             observeInstitutes()
             handleSyncResult(groupDirectoryRepository.ensureInstitutes())
             val instituteId = preferences.selectedInstituteId
@@ -226,6 +411,7 @@ class ScheduleViewModel(
                     draftGroup = null,
                     isLoading = false,
                     needsGroupSelection = true,
+                    needsOccupationSelection = preferences.occupation == null,
                 ) }
                 return@launch
             }
@@ -245,12 +431,81 @@ class ScheduleViewModel(
                 return@launch
             }
             preferencesRepository.saveSelectedGroup(selected)
-            _uiState.update { it.copy(selectedGroup = selected, draftInstituteId = selected.instituteId, draftCourse = selected.course, draftGroup = selected, isLoading = false) }
+            val owner = TimetableOwner.Group(selected)
+            rememberedGroup = owner
+            _uiState.update { it.copy(activeOwner = owner, activeOccupation = Occupation.GROUP, selectedGroup = selected, draftInstituteId = selected.instituteId, draftCourse = selected.course, draftGroup = selected, isLoading = false) }
             loadDirectoryBranch(selected.instituteId, selected.course, ensure = false)
             rebuildWindows()
-            observeSchedule(selected)
-            syncSelectedGroup(selected)
+            observeSchedule(owner)
+            syncSelectedOwner(owner)
         }
+    }
+
+    private suspend fun loadStoredTeacher(preferences: com.kyivsec.duikttimetable.data.StoredPreferences) {
+        observeChairs()
+        handleSyncResult(teacherDirectoryRepository.ensureChairs())
+        val chairId = preferences.selectedChairId
+        if (chairId == null || preferences.selectedTeacherId == null) {
+            _uiState.update { it.copy(isLoading = false, needsTeacherSelection = true) }
+            return
+        }
+        handleSyncResult(teacherDirectoryRepository.ensureTeachers(chairId))
+        val teachers = teacherDirectoryRepository.observeTeachers(chairId).first()
+        val teacher = teachers.firstOrNull { it.id == preferences.selectedTeacherId }
+            ?: teachers.firstOrNull { it.name == preferences.selectedTeacherName }
+        if (teacher == null) {
+            _uiState.update { it.copy(isLoading = false, needsTeacherSelection = true, errorMessage = UiMessage(R.string.error_load_teachers)) }
+            return
+        }
+        val owner = TimetableOwner.Teacher(teacher)
+        rememberedTeacher = owner
+        preferencesRepository.saveSelectedOwner(owner)
+        _uiState.update { it.copy(
+            activeOwner = owner, activeOccupation = Occupation.TEACHER, selectedGroup = null,
+            draftChairId = chairId, draftTeacher = teacher, isLoading = false,
+        ) }
+        loadTeachers(chairId, ensure = false)
+        rebuildWindows()
+        observeSchedule(owner)
+        syncSelectedOwner(owner)
+    }
+
+    private suspend fun loadStoredStudent(preferences: com.kyivsec.duikttimetable.data.StoredPreferences) {
+        observeInstitutes()
+        handleSyncResult(studentDirectoryRepository.ensureStudentInstitutes())
+        val instituteId = preferences.selectedStudentInstituteId
+        val course = preferences.selectedStudentCourse
+        val groupId = preferences.selectedStudentGroupId
+        if (instituteId == null || course == null || groupId == null || preferences.selectedStudentId == null) {
+            _uiState.update { it.copy(isLoading = false, needsStudentSelection = true) }
+            return
+        }
+        handleSyncResult(studentDirectoryRepository.ensureStudentCourses(instituteId))
+        handleSyncResult(studentDirectoryRepository.ensureStudentGroups(instituteId, course))
+        val groups = groupDirectoryRepository.observeGroups(instituteId, course).first()
+        val group = groups.firstOrNull { it.id == groupId }
+            ?: GroupInfo(groupId, preferences.selectedStudentGroupName.orEmpty(), instituteId, preferences.selectedStudentInstituteName.orEmpty(), course)
+        handleSyncResult(studentDirectoryRepository.ensureStudents(group))
+        val students = studentDirectoryRepository.observeStudents(groupId).first()
+        val student = students.firstOrNull { it.id == preferences.selectedStudentId }
+            ?: students.firstOrNull { it.name == preferences.selectedStudentName }
+        if (student == null) {
+            _uiState.update { it.copy(isLoading = false, needsStudentSelection = true, errorMessage = UiMessage(R.string.error_load_students)) }
+            return
+        }
+        val owner = TimetableOwner.Student(student)
+        rememberedStudent = owner
+        preferencesRepository.saveSelectedOwner(owner)
+        _uiState.update { it.copy(
+            activeOwner = owner, activeOccupation = Occupation.STUDENT, selectedGroup = null,
+            draftInstituteId = instituteId, draftCourse = course, draftGroup = group,
+            draftStudent = student, isLoading = false,
+        ) }
+        loadStudentDirectoryBranch(instituteId, course, ensure = false)
+        loadStudents(group, ensure = false)
+        rebuildWindows()
+        observeSchedule(owner)
+        syncSelectedOwner(owner)
     }
 
     private fun observeInstitutes() {
@@ -260,9 +515,65 @@ class ScheduleViewModel(
         }
     }
 
+    private fun observeChairs() {
+        chairsJob?.cancel()
+        chairsJob = viewModelScope.launch {
+            teacherDirectoryRepository.observeChairs().collect { values -> _uiState.update { it.copy(chairs = values) } }
+        }
+    }
+
+    private fun loadTeachers(chairId: Long, ensure: Boolean = true) {
+        teachersJob?.cancel()
+        teachersJob = viewModelScope.launch {
+            _uiState.update { it.copy(isTeachersLoading = true) }
+            if (ensure) handleSyncResult(teacherDirectoryRepository.ensureTeachers(chairId))
+            teacherDirectoryRepository.observeTeachers(chairId).collect { values ->
+                _uiState.update { it.copy(directoryTeachers = values, isTeachersLoading = false) }
+            }
+        }
+    }
+
+    private fun loadStudents(group: GroupInfo, ensure: Boolean = true) {
+        studentsJob?.cancel()
+        studentsJob = viewModelScope.launch {
+            _uiState.update { it.copy(isStudentsLoading = true) }
+            if (ensure) handleSyncResult(studentDirectoryRepository.ensureStudents(group))
+            studentDirectoryRepository.observeStudents(group.id).collect { values ->
+                _uiState.update { it.copy(directoryStudents = values, isStudentsLoading = false) }
+            }
+        }
+    }
+
     private fun loadDirectoryBranch(instituteId: Long, course: Int, ensure: Boolean = true) {
         loadCourses(instituteId, ensure = ensure)
         loadGroups(instituteId, course, ensure = ensure)
+    }
+
+    private fun loadStudentDirectoryBranch(instituteId: Long, course: Int, ensure: Boolean = true) {
+        loadStudentCourses(instituteId, ensure)
+        loadStudentGroups(instituteId, course, ensure)
+    }
+
+    private fun loadStudentCourses(instituteId: Long, ensure: Boolean = true) {
+        coursesJob?.cancel()
+        coursesJob = viewModelScope.launch {
+            _uiState.update { it.copy(isCoursesLoading = true) }
+            if (ensure) handleSyncResult(studentDirectoryRepository.ensureStudentCourses(instituteId))
+            groupDirectoryRepository.observeCourses(instituteId).collect { values ->
+                _uiState.update { it.copy(directoryCourses = values, isCoursesLoading = false) }
+            }
+        }
+    }
+
+    private fun loadStudentGroups(instituteId: Long, course: Int, ensure: Boolean = true) {
+        groupsJob?.cancel()
+        groupsJob = viewModelScope.launch {
+            _uiState.update { it.copy(isGroupsLoading = true) }
+            if (ensure) handleSyncResult(studentDirectoryRepository.ensureStudentGroups(instituteId, course))
+            groupDirectoryRepository.observeGroups(instituteId, course).collect { values ->
+                _uiState.update { it.copy(directoryGroups = values, isGroupsLoading = false) }
+            }
+        }
     }
 
     private fun loadCourses(instituteId: Long, ensure: Boolean = true) {
@@ -287,10 +598,10 @@ class ScheduleViewModel(
         }
     }
 
-    private fun observeSchedule(group: GroupInfo) {
+    private fun observeSchedule(owner: TimetableOwner) {
         scheduleJob?.cancel()
         scheduleJob = viewModelScope.launch {
-            scheduleRepository.observeSchedule(group.id, displayRange()).collect { days ->
+            scheduleRepository.observeSchedule(owner, displayRange()).collect { days ->
                 allDays = days
                 rebuildWindowsOffMain()
             }
@@ -306,13 +617,13 @@ class ScheduleViewModel(
         )
     }
 
-    private fun syncSelectedGroup(group: GroupInfo) {
+    private fun syncSelectedOwner(owner: TimetableOwner) {
         automaticSyncJob?.cancel()
         automaticSyncJob = viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            handleSyncResult(scheduleRepository.syncCurrentSemester(group))
+            handleSyncResult(scheduleRepository.syncCurrentSemester(owner))
             _uiState.update { state ->
-                if (state.selectedGroup?.id == group.id) state.copy(isRefreshing = false) else state
+                if (state.activeOwner?.type == owner.type && state.activeOwner?.id == owner.id) state.copy(isRefreshing = false) else state
             }
         }
     }
@@ -322,7 +633,7 @@ class ScheduleViewModel(
         val days = allDays
         val result = withContext(computationDispatcher) { buildWindows(snapshot, days) }
         _uiState.update { current ->
-            if (current.settings != snapshot.settings || current.selectedGroup != snapshot.selectedGroup) current
+            if (current.settings != snapshot.settings || current.activeOwner != snapshot.activeOwner) current
             else current.copy(
                 weeks = reuseEqualItems(current.weeks, result.weeks),
                 availableDates = if (current.availableDates == result.dates) current.availableDates else result.dates,
@@ -385,7 +696,7 @@ class ScheduleViewModel(
         _uiState.update { it.copy(settings = settings) }
         rebuildWindows()
         if (settings.previousWeeksToKeep != previous.previousWeeksToKeep) {
-            _uiState.value.selectedGroup?.let(::observeSchedule)
+            _uiState.value.activeOwner?.let(::observeSchedule)
         }
         viewModelScope.launch { preferencesRepository.saveSettings(settings) }
     }
@@ -434,13 +745,34 @@ class ScheduleViewModel(
         private val groupDirectoryRepository: GroupDirectoryRepository,
         private val preferencesRepository: SettingsRepository,
         private val clock: Clock = Clock.systemDefaultZone(),
+        private val teacherDirectoryRepository: TeacherDirectoryRepository = EmptyTeacherDirectoryRepository,
+        private val studentDirectoryRepository: StudentDirectoryRepository = EmptyStudentDirectoryRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            ScheduleViewModel(scheduleRepository, groupDirectoryRepository, preferencesRepository, clock) as T
+            ScheduleViewModel(
+                scheduleRepository, groupDirectoryRepository, preferencesRepository, clock,
+                teacherDirectoryRepository = teacherDirectoryRepository,
+                studentDirectoryRepository = studentDirectoryRepository,
+            ) as T
     }
 
     private companion object {
         const val FUTURE_WEEKS = 12L
     }
+}
+
+private object EmptyTeacherDirectoryRepository : TeacherDirectoryRepository {
+    override fun observeChairs() = kotlinx.coroutines.flow.flowOf(emptyList<com.kyivsec.duikttimetable.model.ChairInfo>())
+    override fun observeTeachers(chairId: Long) = kotlinx.coroutines.flow.flowOf(emptyList<TeacherInfo>())
+    override suspend fun ensureChairs(force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
+    override suspend fun ensureTeachers(chairId: Long, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
+}
+
+private object EmptyStudentDirectoryRepository : StudentDirectoryRepository {
+    override suspend fun ensureStudentInstitutes(force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
+    override suspend fun ensureStudentCourses(instituteId: Long, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
+    override suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
+    override fun observeStudents(groupId: Long) = kotlinx.coroutines.flow.flowOf(emptyList<StudentInfo>())
+    override suspend fun ensureStudents(group: GroupInfo, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
 }

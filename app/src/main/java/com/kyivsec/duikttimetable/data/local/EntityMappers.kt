@@ -3,6 +3,9 @@ package com.kyivsec.duikttimetable.data.local
 import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.LessonType
+import com.kyivsec.duikttimetable.model.TimetableOwner
+import com.kyivsec.duikttimetable.model.TeacherInfo
+import com.kyivsec.duikttimetable.model.StudentInfo
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -31,11 +34,17 @@ fun LessonEntity.toDomain(): Lesson = Lesson(
     notice = notice,
 )
 
-fun Lesson.toEntity(groupId: Long, date: LocalDate): LessonEntity = LessonEntity(
-    id, groupId, date.toString(), subject, shortSubject, type.name, rawType,
+fun Lesson.toEntity(owner: TimetableOwner, date: LocalDate): LessonEntity = LessonEntity(
+    id, owner.type.name, owner.id, date.toString(), subject, shortSubject, type.name, rawType,
     startTime.hour * 60 + startTime.minute, endTime.hour * 60 + endTime.minute,
     room, building, teacher, subgroup, notes, onlineUrl, sourceOccurrenceId, sourceDisciplineId,
     sourceTeacherId, sourceGroups, chairName, sourceUpdatedAt?.toEpochMilli(), isNonstandardTime, notice,
 )
 
 fun GroupEntity.toDomain(facultyName: String): GroupInfo = GroupInfo(id, name, facultyId, facultyName, course)
+
+fun TeacherEntity.toDomain(chairName: String): TeacherInfo = TeacherInfo(id, name, chairId, chairName)
+
+fun StudentEntity.toDomain(facultyName: String): StudentInfo = StudentInfo(
+    id, name, groupId, groupName, facultyId, facultyName, course,
+)

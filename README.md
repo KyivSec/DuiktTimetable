@@ -1,6 +1,6 @@
 # DUІКТ Timetable
 
-Android timetable app for students of the State University of Information and Communication Technologies (ДУІКТ). It is built with Kotlin, Jetpack Compose, Material 3, Room, OkHttp, jsoup, Kotlin serialization, DataStore, and coroutines.
+Android group, individual-student, and teacher timetable app for the State University of Information and Communication Technologies (ДУІКТ). It is built with Kotlin, Jetpack Compose, Material 3, Room, OkHttp, jsoup, Kotlin serialization, DataStore, and coroutines.
 
 The app supports Android 8.0 and newer (`minSdk 26`).
 

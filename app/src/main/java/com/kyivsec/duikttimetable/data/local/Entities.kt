@@ -21,13 +21,36 @@ data class GroupEntity(
     val fetchedAt: Long,
 )
 
+@Entity(tableName = "chairs", indices = [Index("name")])
+data class ChairEntity(@androidx.room.PrimaryKey val id: Long, val name: String, val fetchedAt: Long)
+
+@Entity(tableName = "teachers", indices = [Index("chairId"), Index("name")])
+data class TeacherEntity(
+    @androidx.room.PrimaryKey val id: Long,
+    val chairId: Long,
+    val name: String,
+    val fetchedAt: Long,
+)
+
+@Entity(tableName = "students", indices = [Index("groupId"), Index("name")])
+data class StudentEntity(
+    @androidx.room.PrimaryKey val id: Long,
+    val groupId: Long,
+    val groupName: String,
+    val facultyId: Long,
+    val course: Int,
+    val name: String,
+    val fetchedAt: Long,
+)
+
 @Entity(
     tableName = "lessons",
-    indices = [Index(value = ["groupId", "date", "startMinute"])],
+    indices = [Index(value = ["ownerType", "ownerId", "date", "startMinute"])],
 )
 data class LessonEntity(
     @androidx.room.PrimaryKey val id: String,
-    val groupId: Long,
+    val ownerType: String,
+    val ownerId: Long,
     val date: String,
     val subject: String,
     val shortSubject: String?,
@@ -51,5 +74,5 @@ data class LessonEntity(
     val notice: String?,
 )
 
-@Entity(tableName = "cached_schedule_days", primaryKeys = ["groupId", "date"], indices = [Index("date")])
-data class CachedScheduleDayEntity(val groupId: Long, val date: String, val fetchedAt: Long)
+@Entity(tableName = "cached_schedule_days", primaryKeys = ["ownerType", "ownerId", "date"], indices = [Index("date")])
+data class CachedScheduleDayEntity(val ownerType: String, val ownerId: Long, val date: String, val fetchedAt: Long)

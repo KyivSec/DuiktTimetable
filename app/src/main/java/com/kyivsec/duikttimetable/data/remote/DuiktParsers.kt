@@ -19,6 +19,9 @@ class DuiktFilterPageParser {
     fun faculties(html: String): List<RemoteOption> = options(html, "#timetableform-facultyid")
     fun courses(html: String): List<Int> = options(html, "#timetableform-course").mapNotNull { it.id.toInt().takeIf { n -> n > 0 } }
     fun groups(html: String): List<RemoteOption> = options(html, "#timetableform-groupid")
+    fun chairs(html: String): List<RemoteOption> = options(html, "#timetableform-chairid")
+    fun teachers(html: String): List<RemoteOption> = options(html, "#timetableform-teacherid")
+    fun students(html: String): List<RemoteOption> = options(html, "#timetableform-studentid")
 
     fun semesterRange(html: String): ClosedRange<LocalDate>? {
         val script = Jsoup.parse(html).select("script").asSequence()

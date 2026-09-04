@@ -2,6 +2,7 @@ package com.kyivsec.duikttimetable.data.remote
 
 import com.kyivsec.duikttimetable.model.Lesson
 import com.kyivsec.duikttimetable.model.LessonType
+import com.kyivsec.duikttimetable.model.TimetableOwner
 import org.jsoup.Jsoup
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -13,14 +14,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class DuiktLessonMapper(private val zoneId: ZoneId = ZoneId.systemDefault()) {
-    fun map(groupId: Long, dto: DuiktLessonDto): Pair<LocalDate, Lesson> {
+    fun map(owner: TimetableOwner, dto: DuiktLessonDto): Pair<LocalDate, Lesson> {
         val date = LocalDate.parse(dto.date, SOURCE_DATE_FORMAT)
         val start = LocalTime.parse(dto.timeStart)
         val end = LocalTime.parse(dto.timeEnd)
         val info = sanitizeInfo(dto.info)
         val rawType = dto.typeStr?.trim().orEmpty()
         val room = dto.classroom?.removePrefix("ауд.")?.trim()?.takeIf { it.isNotBlank() }
-        val idSeed = listOf(groupId, date, start, end, dto.r1, dto.teacherP1, room).joinToString("|")
+        val idSeed = listOf(owner.type.name, owner.id, date, start, end, dto.r1, dto.teacherP1, room).joinToString("|")
         return date to Lesson(
             id = sha256(idSeed),
             subject = dto.disciplineFullName.trim().ifBlank { dto.disciplineShortName.orEmpty() },

@@ -2,6 +2,14 @@
     <string name="app_name">DUIKT Timetable</string>
     <string name="schedule">Timetable</string>
     <string name="select_group">Select a group</string>
+    <string name="select_timetable_owner">Select a timetable</string>
+    <string name="choose_occupation">Choose whose timetable to show</string>
+    <string name="teacher">Teacher</string>
+    <string name="student">Student</string>
+    <string name="select_student">Select a student</string>
+    <string name="select_teacher">Select a teacher</string>
+    <string name="chair">Department</string>
+    <string name="change_occupation">Change occupation</string>
     <string name="day">Day</string>
     <string name="week">Week</string>
     <string name="hide_classes_in_week_view">Hide classes in week view</string>
@@ -72,6 +80,8 @@
 
     <string name="error_read_settings">Could not read settings</string>
     <string name="error_load_groups">Could not load the group list</string>
+    <string name="error_load_teachers">Could not load the teacher list</string>
+    <string name="error_load_students">Could not load the student list</string>
     <string name="error_offline">Could not retrieve the timetable because of a network connection problem. Check your internet connection—the issue is likely on your side. Showing the saved timetable.</string>
     <string name="error_timeout">The timetable website did not respond in time. The issue is likely on the website’s side.</string>
     <string name="error_http">The timetable website returned error %1$d. The issue is likely on the website’s side.</string>

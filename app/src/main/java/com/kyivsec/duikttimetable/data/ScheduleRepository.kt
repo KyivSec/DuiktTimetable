@@ -3,6 +3,10 @@ package com.kyivsec.duikttimetable.data
 import com.kyivsec.duikttimetable.model.Institute
 import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.ScheduleDay
+import com.kyivsec.duikttimetable.model.ChairInfo
+import com.kyivsec.duikttimetable.model.TeacherInfo
+import com.kyivsec.duikttimetable.model.TimetableOwner
+import com.kyivsec.duikttimetable.model.StudentInfo
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
@@ -29,11 +33,26 @@ sealed interface SyncResult {
 }
 
 interface ScheduleRepository {
-    fun observeSchedule(groupId: Long, range: DateRange): Flow<List<ScheduleDay>>
-    fun observeCachedDates(groupId: Long, range: DateRange): Flow<Set<LocalDate>>
-    suspend fun syncSchedule(group: GroupInfo, range: DateRange, force: Boolean = false): SyncResult
-    suspend fun syncCurrentSemester(group: GroupInfo): SyncResult
+    fun observeSchedule(owner: TimetableOwner, range: DateRange): Flow<List<ScheduleDay>>
+    fun observeCachedDates(owner: TimetableOwner, range: DateRange): Flow<Set<LocalDate>>
+    suspend fun syncSchedule(owner: TimetableOwner, range: DateRange, force: Boolean = false): SyncResult
+    suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult
     suspend fun pruneBefore(date: LocalDate)
+}
+
+interface TeacherDirectoryRepository {
+    fun observeChairs(): Flow<List<ChairInfo>>
+    fun observeTeachers(chairId: Long): Flow<List<TeacherInfo>>
+    suspend fun ensureChairs(force: Boolean = false): SyncResult
+    suspend fun ensureTeachers(chairId: Long, force: Boolean = false): SyncResult
+}
+
+interface StudentDirectoryRepository {
+    suspend fun ensureStudentInstitutes(force: Boolean = false): SyncResult
+    suspend fun ensureStudentCourses(instituteId: Long, force: Boolean = false): SyncResult
+    suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean = false): SyncResult
+    fun observeStudents(groupId: Long): Flow<List<StudentInfo>>
+    suspend fun ensureStudents(group: GroupInfo, force: Boolean = false): SyncResult
 }
 
 interface GroupDirectoryRepository {

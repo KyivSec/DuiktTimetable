@@ -24,6 +24,8 @@ class MainActivity : ComponentActivity() {
             scheduleRepository = container.scheduleRepository,
             groupDirectoryRepository = container.groupDirectoryRepository,
             preferencesRepository = container.settingsRepository,
+            teacherDirectoryRepository = container.teacherDirectoryRepository,
+            studentDirectoryRepository = container.studentDirectoryRepository,
         )
     }
 

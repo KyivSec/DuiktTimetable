@@ -6,6 +6,8 @@ import com.kyivsec.duikttimetable.data.DateRange
 import com.kyivsec.duikttimetable.data.SyncResult
 import com.kyivsec.duikttimetable.data.SettingsRepository
 import com.kyivsec.duikttimetable.data.StoredPreferences
+import com.kyivsec.duikttimetable.data.TeacherDirectoryRepository
+import com.kyivsec.duikttimetable.data.StudentDirectoryRepository
 import com.kyivsec.duikttimetable.model.CourseGroups
 import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.Institute
@@ -15,6 +17,11 @@ import com.kyivsec.duikttimetable.model.ScheduleDay
 import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.model.ScheduleSettings
 import com.kyivsec.duikttimetable.model.ScheduleWeek
+import com.kyivsec.duikttimetable.model.TimetableOwner
+import com.kyivsec.duikttimetable.model.ChairInfo
+import com.kyivsec.duikttimetable.model.Occupation
+import com.kyivsec.duikttimetable.model.TeacherInfo
+import com.kyivsec.duikttimetable.model.StudentInfo
 import com.kyivsec.duikttimetable.viewmodel.ScheduleViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -137,6 +144,51 @@ class ScheduleViewModelTest {
         assertEquals(nextWeek, viewModel.uiState.value.selectedWeek)
         viewModel.viewModelScope.cancel()
     }
+
+    @Test fun `teacher startup and remembered group switch share the schedule pipeline`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            occupation = Occupation.TEACHER,
+            selectedTeacherId = 7,
+            selectedChairId = 42,
+            selectedTeacherName = "Іваненко Іван Іванович",
+            selectedChairName = "Кафедра ІТ",
+            selectedGroupId = 1001,
+            selectedInstituteId = 1,
+            selectedCourse = 3,
+            selectedGroupName = "ПД-31",
+        ))
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher, repository)
+        runCurrent()
+
+        assertEquals("Іваненко Іван Іванович", viewModel.uiState.value.activeOwner?.displayName)
+        assertFalse(viewModel.selectOccupation(Occupation.GROUP))
+        runCurrent()
+        assertEquals("ПД-31", viewModel.uiState.value.activeOwner?.displayName)
+        assertEquals(LocalDate.of(2026, 8, 28), viewModel.uiState.value.selectedDate)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `individual student startup uses the full name as owner label`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val preferences = FakeSettingsRepository(StoredPreferences(
+            occupation = Occupation.STUDENT,
+            selectedStudentId = 9,
+            selectedStudentName = "Петренко Петро Петрович",
+            selectedStudentGroupId = 1001,
+            selectedStudentGroupName = "ПД-31",
+            selectedStudentInstituteId = 1,
+            selectedStudentInstituteName = "ННІ ІТ",
+            selectedStudentCourse = 3,
+        ))
+        val viewModel = ScheduleViewModel(repository, repository, preferences, clock, dispatcher, repository, repository)
+        runCurrent()
+
+        assertEquals(Occupation.STUDENT, viewModel.uiState.value.activeOccupation)
+        assertEquals("Петренко Петро Петрович", viewModel.uiState.value.activeOwner?.displayName)
+        assertEquals(1, repository.semesterRefreshes)
+        viewModel.viewModelScope.cancel()
+    }
 }
 
 private class FakeSettingsRepository(
@@ -154,7 +206,7 @@ private class FakeSettingsRepository(
     override suspend fun saveLastFullRefresh(epochMillis: Long) { stored = stored.copy(lastFullRefreshEpochMillis = epochMillis) }
 }
 
-private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryRepository {
+private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryRepository, TeacherDirectoryRepository, StudentDirectoryRepository {
     var refreshedDay: LocalDate? = null
     var refreshedWeek: LocalDate? = null
     var semesterRefreshes: Int = 0
@@ -162,14 +214,16 @@ private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryReposit
     private val lesson = Lesson("1", "Програмування", LessonType.LAB, LocalTime.of(9, 35), LocalTime.of(10, 55))
     private val week = ScheduleWeek(35, start, start.plusDays(6), (0L..6).map { ScheduleDay(start.plusDays(it), if (it == 4L) listOf(lesson) else emptyList()) })
     private val group = GroupInfo(1001, "ПД-31", 1, "ННІ ІТ", 3)
-    override fun observeSchedule(groupId: Long, range: DateRange): Flow<List<ScheduleDay>> = flowOf(week.days)
-    override fun observeCachedDates(groupId: Long, range: DateRange): Flow<Set<LocalDate>> = flowOf(week.days.map { it.date }.toSet())
-    override suspend fun syncSchedule(group: GroupInfo, range: DateRange, force: Boolean): SyncResult {
+    private val teacher = TeacherInfo(7, "Іваненко Іван Іванович", 42, "Кафедра ІТ")
+    private val student = StudentInfo(9, "Петренко Петро Петрович", 1001, "ПД-31", 1, "ННІ ІТ", 3)
+    override fun observeSchedule(owner: TimetableOwner, range: DateRange): Flow<List<ScheduleDay>> = flowOf(week.days)
+    override fun observeCachedDates(owner: TimetableOwner, range: DateRange): Flow<Set<LocalDate>> = flowOf(week.days.map { it.date }.toSet())
+    override suspend fun syncSchedule(owner: TimetableOwner, range: DateRange, force: Boolean): SyncResult {
         if (force && range.startInclusive == range.endInclusive) refreshedDay = range.startInclusive
         if (force && range.endInclusive == range.startInclusive.plusDays(6)) refreshedWeek = range.startInclusive
         return SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     }
-    override suspend fun syncCurrentSemester(group: GroupInfo): SyncResult {
+    override suspend fun syncCurrentSemester(owner: TimetableOwner): SyncResult {
         semesterRefreshes++
         return SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     }
@@ -180,4 +234,13 @@ private class FakeScheduleRepository : ScheduleRepository, GroupDirectoryReposit
     override suspend fun ensureInstitutes(force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     override suspend fun ensureCourses(instituteId: Long, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
     override suspend fun ensureGroups(instituteId: Long, course: Int, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override fun observeChairs(): Flow<List<ChairInfo>> = flowOf(listOf(ChairInfo(42, "Кафедра ІТ")))
+    override fun observeTeachers(chairId: Long): Flow<List<TeacherInfo>> = flowOf(listOf(teacher))
+    override suspend fun ensureChairs(force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override suspend fun ensureTeachers(chairId: Long, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override fun observeStudents(groupId: Long): Flow<List<StudentInfo>> = flowOf(listOf(student))
+    override suspend fun ensureStudentInstitutes(force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override suspend fun ensureStudentCourses(instituteId: Long, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
+    override suspend fun ensureStudents(group: GroupInfo, force: Boolean) = SyncResult.Success(Instant.parse("2026-08-28T10:00:00Z"), 0)
 }
