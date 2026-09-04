@@ -80,6 +80,23 @@ class ScheduleViewModelTest {
         viewModel.viewModelScope.cancel()
     }
 
+    @Test fun `dismissing incomplete selection releases required selection state`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(StoredPreferences()), clock, dispatcher)
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.needsOccupationSelection)
+        assertTrue(viewModel.uiState.value.needsGroupSelection)
+        viewModel.dismissSelection()
+
+        assertFalse(viewModel.uiState.value.needsOccupationSelection)
+        assertFalse(viewModel.uiState.value.needsGroupSelection)
+        assertFalse(viewModel.uiState.value.needsTeacherSelection)
+        assertFalse(viewModel.uiState.value.needsStudentSelection)
+        assertNull(viewModel.uiState.value.activeOwner)
+        viewModel.viewModelScope.cancel()
+    }
+
     @Test fun `preferred startup mode is applied without changing the current mode setting`() = runTest(dispatcher) {
         val repository = FakeScheduleRepository()
         val preferences = FakeSettingsRepository(StoredPreferences(

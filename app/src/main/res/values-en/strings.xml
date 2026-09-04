@@ -27,6 +27,7 @@
     </plurals>
 
     <string name="open_settings">Open settings</string>
+    <string name="open_selection_menu">Open menu</string>
     <string name="refresh">Refresh</string>
     <string name="refreshing">Refreshing</string>
     <string name="previous_week">Previous week</string>

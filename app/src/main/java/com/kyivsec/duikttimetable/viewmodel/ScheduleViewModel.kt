@@ -142,6 +142,13 @@ class ScheduleViewModel(
 
     fun startOccupationSelection() = _uiState.update { it.copy(needsOccupationSelection = true) }
 
+    fun dismissSelection() = _uiState.update { it.copy(
+        needsOccupationSelection = false,
+        needsGroupSelection = false,
+        needsTeacherSelection = false,
+        needsStudentSelection = false,
+    ) }
+
     fun selectOccupation(occupation: Occupation): Boolean {
         val remembered = when (occupation) {
             Occupation.GROUP -> rememberedGroup

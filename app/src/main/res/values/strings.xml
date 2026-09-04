@@ -29,6 +29,7 @@
     </plurals>
 
     <string name="open_settings">Відкрити налаштування</string>
+    <string name="open_selection_menu">Відкрити меню</string>
     <string name="refresh">Оновити</string>
     <string name="refreshing">Оновлення</string>
     <string name="previous_week">Попередній тиждень</string>

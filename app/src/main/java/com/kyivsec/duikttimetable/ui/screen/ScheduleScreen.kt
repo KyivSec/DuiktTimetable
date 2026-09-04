@@ -72,6 +72,14 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
     var showTeacherSheet by remember { mutableStateOf(false) }
     var showOccupationSheet by remember { mutableStateOf(false) }
     var showStudentSheet by remember { mutableStateOf(false) }
+    val openOwnerSelector = {
+        when (state.activeOccupation) {
+            Occupation.GROUP -> { viewModel.startGroupSelection(); showGroupSheet = true }
+            Occupation.STUDENT -> { viewModel.startStudentSelection(); showStudentSheet = true }
+            Occupation.TEACHER -> { viewModel.startTeacherSelection(); showTeacherSheet = true }
+            null -> showOccupationSheet = true
+        }
+    }
     val localizedError = state.errorMessage?.let { message ->
         message.numberArgument?.let { stringResource(message.resourceId, it) }
             ?: stringResource(message.resourceId)
@@ -128,18 +136,12 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                         groupName = state.activeOwner?.displayName ?: stringResource(R.string.select_timetable_owner),
                         isRefreshing = state.isRefreshing,
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        onGroupClick = {
-                            when (state.activeOccupation) {
-                                Occupation.TEACHER -> { viewModel.startTeacherSelection(); showTeacherSheet = true }
-                                Occupation.STUDENT -> { viewModel.startStudentSelection(); showStudentSheet = true }
-                                else -> { viewModel.startGroupSelection(); showGroupSheet = true }
-                            }
-                        },
+                        onGroupClick = openOwnerSelector,
                         onRefreshClick = viewModel::refreshVisible,
                     )
                 }
                 ScheduleModeSelector(state.selectedMode, viewModel::selectMode, Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-                ScheduleBody(state, viewModel)
+                ScheduleBody(state, viewModel, openOwnerSelector)
             }
         }
     }
@@ -171,7 +173,10 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             onCourseSelected = viewModel::selectDraftCourse,
             onGroupSelected = viewModel::selectDraftGroup,
             onApply = { viewModel.applyGroup(it); showGroupSheet = false },
-            onDismiss = { showGroupSheet = false },
+            onDismiss = {
+                showGroupSheet = false
+                viewModel.dismissSelection()
+            },
         )
     }
     if (showTeacherSheet) {
@@ -182,7 +187,10 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             onChairSelected = viewModel::selectDraftChair,
             onTeacherSelected = viewModel::selectDraftTeacher,
             onApply = { viewModel.applyTeacher(it); showTeacherSheet = false },
-            onDismiss = { showTeacherSheet = false },
+            onDismiss = {
+                showTeacherSheet = false
+                viewModel.dismissSelection()
+            },
         )
     }
     if (showStudentSheet) {
@@ -198,7 +206,10 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             onGroupSelected = viewModel::selectDraftStudentGroup,
             onStudentSelected = viewModel::selectDraftStudent,
             onApply = { viewModel.applyStudent(it); showStudentSheet = false },
-            onDismiss = { showStudentSheet = false },
+            onDismiss = {
+                showStudentSheet = false
+                viewModel.dismissSelection()
+            },
         )
     }
     if (showOccupationSheet) {
@@ -214,25 +225,38 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                     }
                 }
             },
-            onDismiss = { if (state.activeOwner != null) showOccupationSheet = false },
+            onDismiss = {
+                showOccupationSheet = false
+                viewModel.dismissSelection()
+            },
         )
     }
     LessonDetailsHost(viewModel)
 }
 
 @Composable
-private fun ScheduleBody(state: ScheduleUiState, viewModel: ScheduleViewModel) {
+private fun ScheduleBody(state: ScheduleUiState, viewModel: ScheduleViewModel, onSelectOwner: () -> Unit) {
     val now by viewModel.currentTime.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize()) {
         when {
             state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+            state.activeOwner == null -> {
+                val prompt = when (state.activeOccupation) {
+                    Occupation.GROUP -> stringResource(R.string.select_group)
+                    Occupation.STUDENT -> stringResource(R.string.select_student)
+                    Occupation.TEACHER -> stringResource(R.string.select_teacher)
+                    null -> stringResource(R.string.choose_occupation)
+                }
+                EmptySchedule(
+                    message = prompt,
+                    actionLabel = stringResource(R.string.open_selection_menu),
+                    onAction = onSelectOwner,
+                )
+            }
             state.weeks.isEmpty() || state.availableDates.isEmpty() -> EmptySchedule(
-                message = if (state.activeOccupation == null) {
-                    stringResource(R.string.choose_occupation)
-                } else {
-                    stringResource(R.string.schedule_unavailable)
-                },
-                onRetry = viewModel::retry.takeIf { state.activeOccupation != null },
+                message = stringResource(R.string.schedule_unavailable),
+                actionLabel = stringResource(R.string.try_again),
+                onAction = viewModel::retry,
             )
             else -> ScheduleContent(state, now, viewModel)
         }
@@ -297,13 +321,11 @@ private fun ScheduleContent(state: ScheduleUiState, now: LocalDateTime, viewMode
 }
 
 @Composable
-private fun EmptySchedule(message: String, onRetry: (() -> Unit)?) {
+private fun EmptySchedule(message: String, actionLabel: String, onAction: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(message, style = MaterialTheme.typography.titleMedium)
-            onRetry?.let {
-                androidx.compose.material3.TextButton(onClick = it) { Text(stringResource(R.string.try_again)) }
-            }
+            androidx.compose.material3.TextButton(onClick = onAction) { Text(actionLabel) }
         }
     }
 }
