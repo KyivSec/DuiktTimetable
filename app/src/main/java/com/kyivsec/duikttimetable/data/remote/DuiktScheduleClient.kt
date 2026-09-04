@@ -2,7 +2,10 @@ package com.kyivsec.duikttimetable.data.remote
 
 import com.kyivsec.duikttimetable.data.DateRange
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -25,6 +28,7 @@ class DuiktScheduleClient(
     private val client: OkHttpClient = defaultClient(),
     private val filterParser: DuiktFilterPageParser = DuiktFilterPageParser(),
     private val eventsExtractor: EmbeddedEventsJsonExtractor = EmbeddedEventsJsonExtractor(),
+    private val parsingDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val sessionMutex = Mutex()
     private var csrf: String? = null
@@ -46,7 +50,7 @@ class DuiktScheduleClient(
 
     suspend fun fetchSchedule(facultyId: Long, course: Int, groupId: Long, range: DateRange): RemoteSchedule = sessionMutex.withLock {
         val html = postForm(facultyId, course, groupId, range, type = 1)
-        RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
+        parseSchedule(html)
     }
 
     suspend fun fetchChairs(): List<RemoteOption> = sessionMutex.withLock {
@@ -59,7 +63,7 @@ class DuiktScheduleClient(
 
     suspend fun fetchTeacherSchedule(chairId: Long, teacherId: Long, range: DateRange): RemoteSchedule = sessionMutex.withLock {
         val html = postTeacherForm(chairId, teacherId, range, type = 1)
-        RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
+        parseSchedule(html)
     }
 
     suspend fun fetchStudents(facultyId: Long, course: Int, groupId: Long): List<RemoteOption> = sessionMutex.withLock {
@@ -86,6 +90,10 @@ class DuiktScheduleClient(
         range: DateRange,
     ): RemoteSchedule = sessionMutex.withLock {
         val html = postStudentForm(facultyId, course, groupId, studentId, range, type = 1)
+        parseSchedule(html)
+    }
+
+    private suspend fun parseSchedule(html: String): RemoteSchedule = withContext(parsingDispatcher) {
         RemoteSchedule(eventsExtractor.extract(html), filterParser.semesterRange(html))
     }
 

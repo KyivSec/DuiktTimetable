@@ -14,6 +14,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class DuiktLessonMapper(private val zoneId: ZoneId = ZoneId.systemDefault()) {
+    private val digest = ThreadLocal.withInitial { MessageDigest.getInstance("SHA-256") }
     fun map(owner: TimetableOwner, dto: DuiktLessonDto): Pair<LocalDate, Lesson> {
         val date = LocalDate.parse(dto.date, SOURCE_DATE_FORMAT)
         val start = LocalTime.parse(dto.timeStart)
@@ -57,6 +58,10 @@ class DuiktLessonMapper(private val zoneId: ZoneId = ZoneId.systemDefault()) {
     private data class SanitizedInfo(val text: String?, val url: String?)
     private fun sanitizeInfo(html: String?): SanitizedInfo {
         if (html.isNullOrBlank()) return SanitizedInfo(null, null)
+        if ('<' !in html && '>' !in html) {
+            val text = html.trim().takeIf { it.isNotBlank() }
+            return SanitizedInfo(text, URL_PATTERN.find(text.orEmpty())?.value)
+        }
         val document = Jsoup.parseBodyFragment(html)
         val text = document.text().trim().takeIf { it.isNotBlank() }
         val link = document.select("a[href]").firstNotNullOfOrNull { it.absUrl("href").ifBlank { it.attr("href") }.httpUrlOrNull() }
@@ -66,11 +71,20 @@ class DuiktLessonMapper(private val zoneId: ZoneId = ZoneId.systemDefault()) {
 
     private fun String?.clean(): String? = this?.trim()?.takeIf { it.isNotBlank() }
     private fun String.httpUrlOrNull(): String? = takeIf { startsWith("https://") || startsWith("http://") }
-    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-        .digest(value.toByteArray(StandardCharsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    private fun sha256(value: String): String {
+        val bytes = requireNotNull(digest.get()).digest(value.toByteArray(StandardCharsets.UTF_8))
+        return CharArray(bytes.size * 2).also { chars ->
+            bytes.forEachIndexed { index, byte ->
+                val value = byte.toInt() and 0xff
+                chars[index * 2] = HEX[value ushr 4]
+                chars[index * 2 + 1] = HEX[value and 0x0f]
+            }
+        }.concatToString()
+    }
 
     private companion object {
         val UPDATED_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val URL_PATTERN = Regex("https?://[^\\s<]+")
+        val HEX = "0123456789abcdef".toCharArray()
     }
 }

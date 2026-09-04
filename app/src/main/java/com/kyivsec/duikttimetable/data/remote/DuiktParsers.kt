@@ -1,9 +1,6 @@
 package com.kyivsec.duikttimetable.data.remote
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
 import org.jsoup.Jsoup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -24,9 +21,7 @@ class DuiktFilterPageParser {
     fun students(html: String): List<RemoteOption> = options(html, "#timetableform-studentid")
 
     fun semesterRange(html: String): ClosedRange<LocalDate>? {
-        val script = Jsoup.parse(html).select("script").asSequence()
-            .map { it.data() }.firstOrNull { it.contains("Семестр") && it.contains("moment(") } ?: return null
-        val match = SEMESTER_PATTERN.find(script) ?: return null
+        val match = SEMESTER_PATTERN.find(html) ?: return null
         return runCatching {
             LocalDate.parse(match.groupValues[1])..LocalDate.parse(match.groupValues[2])
         }.getOrNull()
@@ -55,22 +50,19 @@ class EmbeddedEventsJsonExtractor(
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
 ) {
     fun extract(html: String): List<DuiktLessonDto> {
-        val document = Jsoup.parse(html)
-        if (document.selectFirst("#filter-form") == null) throw SourceFormatException("Response does not contain the timetable form")
-        val script = document.select("script").asSequence().map { it.data() }
-            .firstOrNull { it.contains("var events =") }
-            ?: throw SourceFormatException("Missing embedded events data")
-        val marker = script.indexOf("var events =")
-        val objectStart = script.indexOf('{', marker).takeIf { it >= 0 } ?: Int.MAX_VALUE
-        val arrayStart = script.indexOf('[', marker).takeIf { it >= 0 } ?: Int.MAX_VALUE
+        if (!FILTER_FORM_PATTERN.containsMatchIn(html)) throw SourceFormatException("Response does not contain the timetable form")
+        val marker = html.indexOf(EVENTS_MARKER)
+        if (marker < 0) throw SourceFormatException("Missing embedded events data")
+        val objectStart = html.indexOf('{', marker).takeIf { it >= 0 } ?: Int.MAX_VALUE
+        val arrayStart = html.indexOf('[', marker).takeIf { it >= 0 } ?: Int.MAX_VALUE
         val start = minOf(objectStart, arrayStart)
         if (start == Int.MAX_VALUE) throw SourceFormatException("Events JSON has no collection")
-        val end = balancedCollectionEnd(script, start)
-        val collectionText = script.substring(start, end + 1)
+        val end = balancedCollectionEnd(html, start)
+        val collectionText = html.substring(start, end + 1)
         return try {
-            when (val root = json.parseToJsonElement(collectionText)) {
-                is JsonObject -> root.values.map { json.decodeFromJsonElement<DuiktLessonDto>(it) }
-                is JsonArray -> root.map { json.decodeFromJsonElement<DuiktLessonDto>(it) }
+            when (html[start]) {
+                '{' -> json.decodeFromString<Map<String, DuiktLessonDto>>(collectionText).values.toList()
+                '[' -> json.decodeFromString<List<DuiktLessonDto>>(collectionText)
                 else -> throw SourceFormatException("Events JSON is not a collection")
             }
         } catch (error: Exception) {
@@ -101,6 +93,11 @@ class EmbeddedEventsJsonExtractor(
             }
         }
         throw SourceFormatException("Unterminated events JSON")
+    }
+
+    private companion object {
+        const val EVENTS_MARKER = "var events ="
+        val FILTER_FORM_PATTERN = Regex("id\\s*=\\s*['\"]filter-form['\"]", RegexOption.IGNORE_CASE)
     }
 }
 
