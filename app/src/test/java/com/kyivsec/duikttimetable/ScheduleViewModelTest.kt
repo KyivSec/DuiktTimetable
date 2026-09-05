@@ -25,6 +25,7 @@ import com.kyivsec.duikttimetable.model.StudentInfo
 import com.kyivsec.duikttimetable.viewmodel.ScheduleViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -65,6 +66,45 @@ class ScheduleViewModelTest {
         viewModel.viewModelScope.cancel()
     }
 
+    @Test fun `all saved owner types show cached lessons while directories are unavailable`() = runTest(dispatcher) {
+        for (occupation in Occupation.entries) {
+            val gate = CompletableDeferred<SyncResult>()
+            val repository = FakeScheduleRepository()
+            val groups = object : GroupDirectoryRepository by repository {
+                override suspend fun ensureInstitutes(force: Boolean) = gate.await()
+            }
+            val teachers = object : TeacherDirectoryRepository by repository {
+                override suspend fun ensureChairs(force: Boolean) = gate.await()
+            }
+            val students = object : StudentDirectoryRepository by repository {
+                override suspend fun ensureStudentInstitutes(force: Boolean) = gate.await()
+            }
+            val preferences = FakeSettingsRepository(StoredPreferences(
+                occupation = occupation,
+                selectedGroupId = 1001, selectedInstituteId = 1,
+                selectedCourse = 3, selectedGroupName = "ПД-31",
+                selectedTeacherId = 7, selectedChairId = 42,
+                selectedTeacherName = "Іваненко Іван Іванович",
+                selectedStudentId = 9, selectedStudentName = "Петренко Петро Петрович",
+                selectedStudentGroupId = 1001, selectedStudentGroupName = "ПД-31",
+                selectedStudentInstituteId = 1, selectedStudentCourse = 3,
+            ))
+            val viewModel = ScheduleViewModel(repository, groups, preferences, clock, dispatcher, teachers, students)
+            runCurrent()
+
+            assertFalse(viewModel.uiState.value.isLoading)
+            assertEquals(occupation, viewModel.uiState.value.activeOwner?.type)
+            assertTrue(viewModel.uiState.value.weeks.flatMap { it.days }.any { it.lessons.isNotEmpty() })
+            assertEquals(1, repository.semesterRefreshes)
+
+            gate.complete(SyncResult.Failure(com.kyivsec.duikttimetable.data.DataError.Offline, true))
+            runCurrent()
+            assertEquals(occupation, viewModel.uiState.value.activeOwner?.type)
+            assertTrue(viewModel.uiState.value.weeks.flatMap { it.days }.any { it.lessons.isNotEmpty() })
+            viewModel.viewModelScope.cancel()
+        }
+    }
+
     @Test fun `first launch requires an explicit empty group selection`() = runTest(dispatcher) {
         val repository = FakeScheduleRepository()
         val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(StoredPreferences()), clock, dispatcher)
@@ -77,6 +117,18 @@ class ScheduleViewModelTest {
         assertNull(viewModel.uiState.value.draftCourse)
         assertNull(viewModel.uiState.value.draftGroup)
         assertEquals(0, repository.semesterRefreshes)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `retry restores the current owner without leaving loading active`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        runCurrent()
+        viewModel.retry()
+        runCurrent()
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(2, repository.semesterRefreshes)
+        assertTrue(viewModel.uiState.value.weeks.flatMap { it.days }.any { it.lessons.isNotEmpty() })
         viewModel.viewModelScope.cancel()
     }
 

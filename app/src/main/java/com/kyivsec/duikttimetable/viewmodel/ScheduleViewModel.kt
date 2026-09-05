@@ -123,6 +123,8 @@ class ScheduleViewModel(
     fun selectLesson(lesson: Lesson?) { _selectedLesson.value = lesson }
 
     fun startGroupSelection() {
+        observeInstitutes()
+        viewModelScope.launch { handleSyncResult(groupDirectoryRepository.ensureInstitutes()) }
         val selected = _uiState.value.selectedGroup
         if (selected == null) {
             _uiState.update { it.copy(
@@ -275,6 +277,7 @@ class ScheduleViewModel(
         }
         val currentDate = today()
         _uiState.update { it.copy(
+            isLoading = false,
             activeOwner = owner,
             activeOccupation = owner.type,
             selectedGroup = (owner as? TimetableOwner.Group)?.group,
@@ -396,124 +399,35 @@ class ScheduleViewModel(
                 lastFullRefreshEpochMillis = preferences.lastFullRefreshEpochMillis,
                 activeOccupation = preferences.occupation,
             ) }
-            when (preferences.occupation) {
-                Occupation.TEACHER -> {
-                    loadStoredTeacher(preferences)
-                    return@launch
-                }
-                Occupation.STUDENT -> {
-                    loadStoredStudent(preferences)
-                    return@launch
-                }
-                else -> Unit
+            val owner = when (preferences.occupation) {
+                Occupation.TEACHER -> rememberedTeacher
+                Occupation.STUDENT -> rememberedStudent
+                Occupation.GROUP, null -> rememberedGroup
             }
-            observeInstitutes()
-            handleSyncResult(groupDirectoryRepository.ensureInstitutes())
-            val instituteId = preferences.selectedInstituteId
-            val course = preferences.selectedCourse
-            if (preferences.selectedGroupId == null || instituteId == null || course == null) {
+            if (owner != null) {
+                if (_uiState.value.activeOwner == owner) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    observeSchedule(owner)
+                    syncSelectedOwner(owner)
+                } else {
+                    applyOwner(owner)
+                }
+            } else {
                 _uiState.update { it.copy(
-                    selectedGroup = null,
-                    draftInstituteId = null,
-                    draftCourse = null,
-                    draftGroup = null,
                     isLoading = false,
-                    needsGroupSelection = true,
                     needsOccupationSelection = preferences.occupation == null,
+                    needsGroupSelection = preferences.occupation == null || preferences.occupation == Occupation.GROUP,
+                    needsTeacherSelection = preferences.occupation == Occupation.TEACHER,
+                    needsStudentSelection = preferences.occupation == Occupation.STUDENT,
                 ) }
-                return@launch
             }
-            val coursesResult = groupDirectoryRepository.ensureCourses(instituteId)
-            handleSyncResult(coursesResult)
-            val groupsResult = groupDirectoryRepository.ensureGroups(instituteId, course)
-            handleSyncResult(groupsResult)
-            val groups = groupDirectoryRepository.observeGroups(instituteId, course).first()
-            val selected = groups.firstOrNull { it.id == preferences.selectedGroupId }
-                ?: groups.firstOrNull { it.name == preferences.selectedGroupName }
-            if (selected == null && _uiState.value.errorMessage == null) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = UiMessage(R.string.error_load_groups)) }
-                return@launch
+            // Populate selectors independently; cached lessons never wait for directory requests.
+            when (preferences.occupation) {
+                Occupation.TEACHER -> startTeacherSelection()
+                Occupation.STUDENT -> startStudentSelection()
+                Occupation.GROUP, null -> startGroupSelection()
             }
-            if (selected == null) {
-                _uiState.update { it.copy(isLoading = false) }
-                return@launch
-            }
-            preferencesRepository.saveSelectedGroup(selected)
-            val owner = TimetableOwner.Group(selected)
-            rememberedGroup = owner
-            _uiState.update { it.copy(activeOwner = owner, activeOccupation = Occupation.GROUP, selectedGroup = selected, draftInstituteId = selected.instituteId, draftCourse = selected.course, draftGroup = selected, isLoading = false) }
-            loadDirectoryBranch(selected.instituteId, selected.course, ensure = false)
-            rebuildWindows()
-            observeSchedule(owner)
-            syncSelectedOwner(owner)
         }
-    }
-
-    private suspend fun loadStoredTeacher(preferences: com.kyivsec.duikttimetable.data.StoredPreferences) {
-        observeChairs()
-        handleSyncResult(teacherDirectoryRepository.ensureChairs())
-        val chairId = preferences.selectedChairId
-        if (chairId == null || preferences.selectedTeacherId == null) {
-            _uiState.update { it.copy(isLoading = false, needsTeacherSelection = true) }
-            return
-        }
-        handleSyncResult(teacherDirectoryRepository.ensureTeachers(chairId))
-        val teachers = teacherDirectoryRepository.observeTeachers(chairId).first()
-        val teacher = teachers.firstOrNull { it.id == preferences.selectedTeacherId }
-            ?: teachers.firstOrNull { it.name == preferences.selectedTeacherName }
-        if (teacher == null) {
-            _uiState.update { it.copy(isLoading = false, needsTeacherSelection = true, errorMessage = UiMessage(R.string.error_load_teachers)) }
-            return
-        }
-        val owner = TimetableOwner.Teacher(teacher)
-        rememberedTeacher = owner
-        preferencesRepository.saveSelectedOwner(owner)
-        _uiState.update { it.copy(
-            activeOwner = owner, activeOccupation = Occupation.TEACHER, selectedGroup = null,
-            draftChairId = chairId, draftTeacher = teacher, isLoading = false,
-        ) }
-        loadTeachers(chairId, ensure = false)
-        rebuildWindows()
-        observeSchedule(owner)
-        syncSelectedOwner(owner)
-    }
-
-    private suspend fun loadStoredStudent(preferences: com.kyivsec.duikttimetable.data.StoredPreferences) {
-        observeInstitutes()
-        handleSyncResult(studentDirectoryRepository.ensureStudentInstitutes())
-        val instituteId = preferences.selectedStudentInstituteId
-        val course = preferences.selectedStudentCourse
-        val groupId = preferences.selectedStudentGroupId
-        if (instituteId == null || course == null || groupId == null || preferences.selectedStudentId == null) {
-            _uiState.update { it.copy(isLoading = false, needsStudentSelection = true) }
-            return
-        }
-        handleSyncResult(studentDirectoryRepository.ensureStudentCourses(instituteId))
-        handleSyncResult(studentDirectoryRepository.ensureStudentGroups(instituteId, course))
-        val groups = groupDirectoryRepository.observeGroups(instituteId, course).first()
-        val group = groups.firstOrNull { it.id == groupId }
-            ?: GroupInfo(groupId, preferences.selectedStudentGroupName.orEmpty(), instituteId, preferences.selectedStudentInstituteName.orEmpty(), course)
-        handleSyncResult(studentDirectoryRepository.ensureStudents(group))
-        val students = studentDirectoryRepository.observeStudents(groupId).first()
-        val student = students.firstOrNull { it.id == preferences.selectedStudentId }
-            ?: students.firstOrNull { it.name == preferences.selectedStudentName }
-        if (student == null) {
-            _uiState.update { it.copy(isLoading = false, needsStudentSelection = true, errorMessage = UiMessage(R.string.error_load_students)) }
-            return
-        }
-        val owner = TimetableOwner.Student(student)
-        rememberedStudent = owner
-        preferencesRepository.saveSelectedOwner(owner)
-        _uiState.update { it.copy(
-            activeOwner = owner, activeOccupation = Occupation.STUDENT, selectedGroup = null,
-            draftInstituteId = instituteId, draftCourse = course, draftGroup = group,
-            draftStudent = student, isLoading = false,
-        ) }
-        loadStudentDirectoryBranch(instituteId, course, ensure = false)
-        loadStudents(group, ensure = false)
-        rebuildWindows()
-        observeSchedule(owner)
-        syncSelectedOwner(owner)
     }
 
     private fun observeInstitutes() {
