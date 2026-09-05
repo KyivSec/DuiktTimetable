@@ -22,6 +22,7 @@ import com.kyivsec.duikttimetable.ui.component.WeekDayCard
 import com.kyivsec.duikttimetable.ui.theme.DuiktTimetableTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertEquals
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -35,7 +36,7 @@ class ScheduleComponentsTest {
         var selected by mutableStateOf(ScheduleMode.DAY)
         composeRule.setContent { DuiktTimetableTheme { ScheduleModeSelector(selectedMode = selected, onModeSelected = { selected = it }) } }
         composeRule.onNodeWithText(context.getString(R.string.week)).performClick()
-        composeRule.runOnIdle { assert(selected == ScheduleMode.WEEK) }
+        composeRule.runOnIdle { assertEquals(ScheduleMode.WEEK, selected) }
     }
 
     @Test fun weekCardExpandsAndShowsLesson() {
@@ -62,7 +63,7 @@ class ScheduleComponentsTest {
         }
         composeRule.onNodeWithTag("dayPager").performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("29").assertIsSelected()
+        composeRule.runOnIdle { assertEquals(first.plusDays(1), selected) }
     }
 
     @Test fun swipingWeekUpdatesRangeWithoutWaitingForSettlementState() {
@@ -79,6 +80,7 @@ class ScheduleComponentsTest {
         }
         composeRule.onNodeWithTag("weekPager").performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
+        composeRule.runOnIdle { assertEquals(firstStart.plusWeeks(1), selected) }
         composeRule.onNodeWithText(context.getString(R.string.week), substring = true).assertIsDisplayed()
     }
 }

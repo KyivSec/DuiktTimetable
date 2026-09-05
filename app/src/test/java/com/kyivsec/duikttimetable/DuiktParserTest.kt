@@ -8,11 +8,33 @@ import com.kyivsec.duikttimetable.model.GroupInfo
 import com.kyivsec.duikttimetable.model.TimetableOwner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
+import com.kyivsec.duikttimetable.data.remote.SourceFormatException
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneOffset
 
 class DuiktParserTest {
+    @Test fun `invalid directory responses cannot masquerade as successful empty lists`() {
+        val parser = DuiktFilterPageParser()
+        for (html in listOf(
+            "<html>Maintenance</html>",
+            "<form id='filter-form'></form>",
+            "<form id='filter-form'><select id='timetableform-groupid'><option value='broken'>Group</option></select></form>",
+            "<form id='filter-form'><select id='timetableform-groupid'><option value='1'></option></select></form>",
+        )) {
+            assertThrows(SourceFormatException::class.java) { parser.groups(html) }
+        }
+        assertTrue(parser.groups("<form id='filter-form'><select id='timetableform-groupid'><option value=''>Choose</option></select></form>").isEmpty())
+    }
+
+    @Test fun `malformed or missing events fail instead of becoming empty schedules`() {
+        for (events in listOf("", "var events = {", "var events = [{broken}];")) {
+            assertThrows(SourceFormatException::class.java) {
+                EmbeddedEventsJsonExtractor().extract("<form id='filter-form'></form><script>$events</script>")
+            }
+        }
+    }
     @Test fun `parses chair and full teacher directories`() {
         val parser = DuiktFilterPageParser()
         val html = """

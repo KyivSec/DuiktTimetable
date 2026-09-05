@@ -13,7 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  checks:
+    uses: ./.github/workflows/android-checks.yml
+
   build:
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -59,8 +63,8 @@ jobs:
           } > keystore.properties
           chmod 600 keystore.properties
 
-      - name: Test and build signed release
-        run: ./gradlew --no-daemon testDebugUnitTest assembleRelease bundleRelease
+      - name: Build signed release
+        run: ./gradlew --no-daemon assembleRelease bundleRelease
 
       - name: Prepare named release APK
         id: release_apk

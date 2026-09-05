@@ -3,22 +3,24 @@ package com.kyivsec.duikttimetable.data.local
 import androidx.room.Entity
 import androidx.room.Index
 
-@Entity(tableName = "faculties")
-data class FacultyEntity(@androidx.room.PrimaryKey val id: Long, val name: String, val fetchedAt: Long)
+@Entity(tableName = "faculties", primaryKeys = ["source", "id"])
+data class FacultyEntity(val id: Long, val name: String, val fetchedAt: Long, val source: String = "GROUP")
 
-@Entity(tableName = "courses", primaryKeys = ["facultyId", "course"], indices = [Index("facultyId")])
-data class CourseEntity(val facultyId: Long, val course: Int, val fetchedAt: Long)
+@Entity(tableName = "courses", primaryKeys = ["source", "facultyId", "course"], indices = [Index("facultyId")])
+data class CourseEntity(val facultyId: Long, val course: Int, val fetchedAt: Long, val source: String = "GROUP")
 
 @Entity(
     tableName = "groups",
+    primaryKeys = ["source", "id"],
     indices = [Index(value = ["facultyId", "course"]), Index("name")],
 )
 data class GroupEntity(
-    @androidx.room.PrimaryKey val id: Long,
+    val id: Long,
     val facultyId: Long,
     val course: Int,
     val name: String,
     val fetchedAt: Long,
+    val source: String = "GROUP",
 )
 
 @Entity(tableName = "chairs", indices = [Index("name")])
@@ -85,3 +87,6 @@ data class SemesterSyncEntity(
     val endDate: String,
     val fetchedAt: Long,
 )
+
+@Entity(tableName = "directory_syncs")
+data class DirectorySyncEntity(@androidx.room.PrimaryKey val branch: String, val fetchedAt: Long)

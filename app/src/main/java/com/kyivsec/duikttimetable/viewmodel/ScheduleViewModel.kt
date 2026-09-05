@@ -185,7 +185,7 @@ class ScheduleViewModel(
 
     fun startStudentSelection() {
         cancelDirectoryJobs()
-        observeInstitutes()
+        observeInstitutes(student = true)
         directoryRefreshJob = viewModelScope.launch { handleSyncResult(studentDirectoryRepository.ensureStudentInstitutes()) }
         val selected = (_uiState.value.activeOwner as? TimetableOwner.Student)?.student
         if (selected == null) {
@@ -484,10 +484,12 @@ class ScheduleViewModel(
         _uiState.update { it.copy(isCoursesLoading = false, isTeachersLoading = false) }
     }
 
-    private fun observeInstitutes() {
+    private fun observeInstitutes(student: Boolean = false) {
         institutesJob?.cancel()
         institutesJob = viewModelScope.launch {
-            groupDirectoryRepository.observeInstitutes().collect { values -> _uiState.update { it.copy(institutes = values) } }
+            val institutes = if (student) studentDirectoryRepository.observeStudentInstitutes()
+                else groupDirectoryRepository.observeInstitutes()
+            institutes.collect { values -> _uiState.update { it.copy(institutes = values) } }
         }
     }
 
@@ -535,7 +537,7 @@ class ScheduleViewModel(
         coursesJob = viewModelScope.launch {
             _uiState.update { it.copy(isCoursesLoading = true) }
             if (ensure) handleSyncResult(studentDirectoryRepository.ensureStudentCourses(instituteId))
-            groupDirectoryRepository.observeCourses(instituteId).collect { values ->
+            studentDirectoryRepository.observeStudentCourses(instituteId).collect { values ->
                 _uiState.update { it.copy(directoryCourses = values, isCoursesLoading = false) }
             }
         }
@@ -546,7 +548,7 @@ class ScheduleViewModel(
         groupsJob = viewModelScope.launch {
             _uiState.update { it.copy(isGroupsLoading = true) }
             if (ensure) handleSyncResult(studentDirectoryRepository.ensureStudentGroups(instituteId, course))
-            groupDirectoryRepository.observeGroups(instituteId, course).collect { values ->
+            studentDirectoryRepository.observeStudentGroups(instituteId, course).collect { values ->
                 _uiState.update { it.copy(directoryGroups = values, isGroupsLoading = false) }
             }
         }
@@ -773,6 +775,9 @@ private object EmptyTeacherDirectoryRepository : TeacherDirectoryRepository {
 }
 
 private object EmptyStudentDirectoryRepository : StudentDirectoryRepository {
+    override fun observeStudentInstitutes() = kotlinx.coroutines.flow.flowOf(emptyList<com.kyivsec.duikttimetable.model.Institute>())
+    override fun observeStudentCourses(instituteId: Long) = kotlinx.coroutines.flow.flowOf(emptyList<Int>())
+    override fun observeStudentGroups(instituteId: Long, course: Int) = kotlinx.coroutines.flow.flowOf(emptyList<GroupInfo>())
     override suspend fun ensureStudentInstitutes(force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
     override suspend fun ensureStudentCourses(instituteId: Long, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)
     override suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean) = SyncResult.Success(Instant.EPOCH, 0)

@@ -6,14 +6,37 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [FacultyEntity::class, CourseEntity::class, GroupEntity::class, ChairEntity::class, TeacherEntity::class, StudentEntity::class, LessonEntity::class, CachedScheduleDayEntity::class, SemesterSyncEntity::class],
-    version = 4,
+    entities = [FacultyEntity::class, CourseEntity::class, GroupEntity::class, ChairEntity::class, TeacherEntity::class, StudentEntity::class, LessonEntity::class, CachedScheduleDayEntity::class, SemesterSyncEntity::class, DirectorySyncEntity::class],
+    version = 5,
     exportSchema = true,
 )
 abstract class TimetableDatabase : RoomDatabase() {
     abstract fun timetableDao(): TimetableDao
+    internal val directorySyncMutex = kotlinx.coroutines.sync.Mutex()
 
     companion object {
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS directory_syncs (branch TEXT NOT NULL PRIMARY KEY, fetchedAt INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE faculties_new (id INTEGER NOT NULL, name TEXT NOT NULL, fetchedAt INTEGER NOT NULL, source TEXT NOT NULL, PRIMARY KEY(source, id))")
+                db.execSQL("CREATE TABLE courses_new (facultyId INTEGER NOT NULL, course INTEGER NOT NULL, fetchedAt INTEGER NOT NULL, source TEXT NOT NULL, PRIMARY KEY(source, facultyId, course))")
+                db.execSQL("CREATE TABLE groups_new (id INTEGER NOT NULL, facultyId INTEGER NOT NULL, course INTEGER NOT NULL, name TEXT NOT NULL, fetchedAt INTEGER NOT NULL, source TEXT NOT NULL, PRIMARY KEY(source, id))")
+                // The old cache was shared. Preserve it for both selectors, but leave it
+                // unmarked so each endpoint reconciles its own branch on the next refresh.
+                for (source in listOf("GROUP", "STUDENT")) {
+                    db.execSQL("INSERT INTO faculties_new SELECT id, name, fetchedAt, '$source' FROM faculties")
+                    db.execSQL("INSERT INTO courses_new SELECT facultyId, course, fetchedAt, '$source' FROM courses")
+                    db.execSQL("INSERT INTO groups_new SELECT id, facultyId, course, name, fetchedAt, '$source' FROM groups")
+                }
+                for (table in listOf("faculties", "courses", "groups")) {
+                    db.execSQL("DROP TABLE $table")
+                    db.execSQL("ALTER TABLE ${table}_new RENAME TO $table")
+                }
+                db.execSQL("CREATE INDEX index_courses_facultyId ON courses(facultyId)")
+                db.execSQL("CREATE INDEX index_groups_facultyId_course ON groups(facultyId, course)")
+                db.execSQL("CREATE INDEX index_groups_name ON groups(name)")
+            }
+        }
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Existing day markers cannot prove that a complete semester was fetched.

@@ -26,7 +26,7 @@ class TimetableMigrationTest {
         }
 
         val db = helper.runMigrationsAndValidate(
-            DATABASE, 4, true, TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4,
+            DATABASE, 5, true, TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4, TimetableDatabase.MIGRATION_4_5,
         )
         assertEquals(1, db.count("SELECT COUNT(*) FROM lessons WHERE ownerType='GROUP' AND ownerId=17 AND id='old'"))
         assertEquals(1, db.count("SELECT COUNT(*) FROM cached_schedule_days WHERE ownerType='GROUP' AND ownerId=17"))
@@ -41,6 +41,25 @@ class TimetableMigrationTest {
     private fun SupportSQLiteDatabase.count(sql: String): Int = query(sql).use { cursor ->
         cursor.moveToFirst()
         cursor.getInt(0)
+    }
+
+    @Test fun v4DirectoriesSurviveInBothSourcesWithoutInventingFreshness() {
+        helper.createDatabase(DATABASE, 4).apply {
+            execSQL("INSERT INTO faculties VALUES(1, 'ІТ', 123)")
+            execSQL("INSERT INTO courses VALUES(1, 3, 123)")
+            execSQL("INSERT INTO groups VALUES(17, 1, 3, 'ПД-31', 123)")
+            execSQL("INSERT INTO semester_syncs VALUES('GROUP', 17, '2026-09-01', '2026-12-31', 123)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(DATABASE, 5, true, TimetableDatabase.MIGRATION_4_5)
+        for (source in listOf("GROUP", "STUDENT")) {
+            assertEquals(1, db.count("SELECT COUNT(*) FROM faculties WHERE source='$source' AND id=1"))
+            assertEquals(1, db.count("SELECT COUNT(*) FROM courses WHERE source='$source' AND facultyId=1 AND course=3"))
+            assertEquals(1, db.count("SELECT COUNT(*) FROM groups WHERE source='$source' AND id=17"))
+        }
+        assertEquals(0, db.count("SELECT COUNT(*) FROM directory_syncs"))
+        assertEquals(1, db.count("SELECT COUNT(*) FROM semester_syncs"))
+        db.close()
     }
 
     private companion object { const val DATABASE = "migration-test" }

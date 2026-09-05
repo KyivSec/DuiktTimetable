@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import com.kyivsec.duikttimetable.R
 import com.kyivsec.duikttimetable.model.ScheduleMode
 
@@ -46,7 +47,8 @@ private fun ModeOption(label: String, mode: ScheduleMode, selectedMode: Schedule
     )
     Text(
         text = label,
-        modifier = modifier.clip(RoundedCornerShape(20.dp)).background(background).clickable { onClick(mode) }.padding(vertical = 9.dp),
+        modifier = modifier.testTag("scheduleMode:${mode.name}").clip(RoundedCornerShape(20.dp))
+            .background(background).clickable { onClick(mode) }.padding(vertical = 9.dp),
         textAlign = TextAlign.Center,
         color = content,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

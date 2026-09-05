@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +68,7 @@ fun <T> DropdownSelector(
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
+                    modifier = Modifier.testTag("dropdownOption:${optionLabel(option)}"),
                     text = { Text(optionLabel(option), maxLines = 2, overflow = TextOverflow.Ellipsis) },
                     onClick = { expanded = false; onSelected(option) },
                 )

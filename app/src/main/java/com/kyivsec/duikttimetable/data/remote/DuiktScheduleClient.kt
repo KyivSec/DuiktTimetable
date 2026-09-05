@@ -29,21 +29,21 @@ class DuiktScheduleClient(
     private val filterParser: DuiktFilterPageParser = DuiktFilterPageParser(),
     private val eventsExtractor: EmbeddedEventsJsonExtractor = EmbeddedEventsJsonExtractor(),
     private val parsingDispatcher: CoroutineDispatcher = Dispatchers.Default,
-) {
+) : DirectoryClient {
     private val sessionMutex = Mutex()
     private var csrf: String? = null
 
-    suspend fun fetchInstitutes(): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchInstitutes(): List<RemoteOption> = sessionMutex.withLock {
         val html = getInitialPage(force = true)
         filterParser.faculties(html)
     }
 
-    suspend fun fetchCourses(facultyId: Long): List<Int> = sessionMutex.withLock {
+    override suspend fun fetchCourses(facultyId: Long): List<Int> = sessionMutex.withLock {
         val html = postForm(facultyId, null, null, null, type = 0)
         filterParser.courses(html)
     }
 
-    suspend fun fetchGroups(facultyId: Long, course: Int): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchGroups(facultyId: Long, course: Int): List<RemoteOption> = sessionMutex.withLock {
         val html = postForm(facultyId, course, null, null, type = 0)
         filterParser.groups(html)
     }
@@ -53,11 +53,11 @@ class DuiktScheduleClient(
         parseSchedule(html)
     }
 
-    suspend fun fetchChairs(): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchChairs(): List<RemoteOption> = sessionMutex.withLock {
         filterParser.chairs(getTeacherInitialPage(force = true))
     }
 
-    suspend fun fetchTeachers(chairId: Long): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchTeachers(chairId: Long): List<RemoteOption> = sessionMutex.withLock {
         filterParser.teachers(postTeacherForm(chairId, null, null, type = 0))
     }
 
@@ -66,19 +66,19 @@ class DuiktScheduleClient(
         parseSchedule(html)
     }
 
-    suspend fun fetchStudents(facultyId: Long, course: Int, groupId: Long): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchStudents(facultyId: Long, course: Int, groupId: Long): List<RemoteOption> = sessionMutex.withLock {
         filterParser.students(postStudentForm(facultyId, course, groupId, null, null, type = 0))
     }
 
-    suspend fun fetchStudentInstitutes(): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchStudentInstitutes(): List<RemoteOption> = sessionMutex.withLock {
         filterParser.faculties(getStudentInitialPage(force = true))
     }
 
-    suspend fun fetchStudentCourses(facultyId: Long): List<Int> = sessionMutex.withLock {
+    override suspend fun fetchStudentCourses(facultyId: Long): List<Int> = sessionMutex.withLock {
         filterParser.courses(postStudentForm(facultyId, null, null, null, null, type = 0))
     }
 
-    suspend fun fetchStudentGroups(facultyId: Long, course: Int): List<RemoteOption> = sessionMutex.withLock {
+    override suspend fun fetchStudentGroups(facultyId: Long, course: Int): List<RemoteOption> = sessionMutex.withLock {
         filterParser.groups(postStudentForm(facultyId, course, null, null, null, type = 0))
     }
 

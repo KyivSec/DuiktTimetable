@@ -32,8 +32,12 @@ class DuiktFilterPageParser {
         requireFilter(document.selectFirst("#filter-form") != null)
         val select = document.selectFirst(selector) ?: throw SourceFormatException("Missing $selector")
         return select.select("option[value]").mapNotNull { option ->
-            val id = option.attr("value").toLongOrNull() ?: return@mapNotNull null
-            option.text().trim().takeIf { it.isNotBlank() }?.let { RemoteOption(id, it) }
+            val value = option.attr("value").trim()
+            if (value.isEmpty()) return@mapNotNull null // The unselected placeholder.
+            val id = value.toLongOrNull() ?: throw SourceFormatException("Invalid directory ID in $selector")
+            val name = option.text().trim()
+            if (name.isBlank()) throw SourceFormatException("Missing directory name in $selector")
+            RemoteOption(id, name)
         }
     }
 

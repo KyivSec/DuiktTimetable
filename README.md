@@ -8,8 +8,8 @@ The app supports Android 8.0 and newer (`minSdk 26`).
 
 Requirements:
 
-- Android Studio with Android SDK 37
-- JDK 17 or newer
+- Android Studio with Android SDK 36
+- JDK 25 (the Gradle daemon toolchain is pinned in `gradle/gradle-daemon-jvm.properties`)
 - Internet access for the initial Gradle dependency download
 
 From the project root, build an installable debug APK:
@@ -47,6 +47,14 @@ Run local unit tests with:
 
 ## Continuous integration
 
+Pull requests run unit tests, Android lint, and emulator tests on API 26 and 36 without signing or Telegram secrets. The emulator suite uses local fixtures and covers database migrations, repository synchronization, and essential screen interactions. Reports are retained for 14 days. The same checks must succeed before the release workflow restores signing credentials and builds artifacts.
+
+Run these checks locally with an emulator or device connected:
+
+```bash
+./gradlew testDebugUnitTest lintDebug connectedDebugAndroidTest
+```
+
 Every push to `main` runs the unit tests and builds signed APK and AAB release artifacts with GitHub Actions. The workflow is also available through **Actions → Android release build → Run workflow**. Successful artifacts are retained for 30 days on the workflow run. The APK is named `DuiktTimetable-{version}-{dd.mm.yyyy}-{commit}.apk`, using the Kyiv calendar date and the first seven characters of the Git commit ID, and is sent to the configured Telegram channel after a successful build. The Telegram message includes linked commits from the push; manual runs show the latest commits instead. Long changelogs are truncated to fit Telegram’s caption limit.
 
 Release credentials are stored as encrypted GitHub Actions secrets named `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`; signing material is never committed.
@@ -72,3 +80,5 @@ The response parser:
 On the first launch, the app opens an empty institute/course/group selector and does not request a schedule until the user explicitly chooses all three values. Cached days are displayed immediately on later launches. The app then refreshes the current semester once for the persisted selected group. Selecting another group performs one update for that explicit selection. Day/week swipes, mode changes, item expansion, and returning to today read Room only and never trigger network requests. Successful empty dates are cached as valid coverage, and failed requests do not erase existing data.
 
 Semester freshness is tracked separately from individual day coverage, by timetable owner and semester dates. A successful full semester fetch remains fresh for 30 minutes; refreshing a day or week does not extend that interval. Responses without semester boundaries cache only the requested probe range and do not mark the semester as complete.
+
+Directory refreshes replace the fetched branch and its success timestamp in one transaction, including valid empty responses. Failed or cancelled requests preserve the previous branch. Group and student directory caches are separated by endpoint; refreshing one does not change the other's options. Directory freshness lasts seven days and is rechecked after waiting for an in-progress directory refresh.

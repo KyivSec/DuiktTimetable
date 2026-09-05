@@ -8,6 +8,24 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TimetableDao {
+    @Query("SELECT fetchedAt FROM directory_syncs WHERE branch = :branch")
+    suspend fun directoryFetchedAt(branch: String): Long?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDirectorySync(value: DirectorySyncEntity)
+
+    @Query("DELETE FROM faculties WHERE source = :source")
+    suspend fun deleteFaculties(source: String = "GROUP")
+    @Query("DELETE FROM courses WHERE source = :source AND facultyId = :facultyId")
+    suspend fun deleteCourses(facultyId: Long, source: String = "GROUP")
+    @Query("DELETE FROM groups WHERE source = :source AND facultyId = :facultyId AND course = :course")
+    suspend fun deleteGroups(facultyId: Long, course: Int, source: String = "GROUP")
+    @Query("DELETE FROM chairs")
+    suspend fun deleteChairs()
+    @Query("DELETE FROM teachers WHERE chairId = :chairId")
+    suspend fun deleteTeachers(chairId: Long)
+    @Query("DELETE FROM students WHERE groupId = :groupId")
+    suspend fun deleteStudents(groupId: Long)
+
     @Query("SELECT * FROM semester_syncs WHERE ownerType = :ownerType AND ownerId = :ownerId")
     suspend fun semesterSync(ownerType: String, ownerId: Long): SemesterSyncEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -15,22 +33,22 @@ interface TimetableDao {
     @Query("DELETE FROM semester_syncs WHERE startDate < :date")
     suspend fun invalidatePrunedSemesters(date: String)
 
-    @Query("SELECT * FROM faculties ORDER BY name")
-    fun observeFaculties(): Flow<List<FacultyEntity>>
-    @Query("SELECT * FROM courses WHERE facultyId = :facultyId ORDER BY course")
-    fun observeCourses(facultyId: Long): Flow<List<CourseEntity>>
-    @Query("SELECT * FROM groups WHERE facultyId = :facultyId AND course = :course ORDER BY name")
-    fun observeGroups(facultyId: Long, course: Int): Flow<List<GroupEntity>>
-    @Query("SELECT * FROM groups WHERE id = :id LIMIT 1")
-    suspend fun group(id: Long): GroupEntity?
-    @Query("SELECT * FROM faculties WHERE id = :id LIMIT 1")
-    suspend fun faculty(id: Long): FacultyEntity?
-    @Query("SELECT MAX(fetchedAt) FROM faculties")
-    suspend fun facultiesFetchedAt(): Long?
-    @Query("SELECT MAX(fetchedAt) FROM courses WHERE facultyId = :facultyId")
-    suspend fun coursesFetchedAt(facultyId: Long): Long?
-    @Query("SELECT MAX(fetchedAt) FROM groups WHERE facultyId = :facultyId AND course = :course")
-    suspend fun groupsFetchedAt(facultyId: Long, course: Int): Long?
+    @Query("SELECT * FROM faculties WHERE source = :source ORDER BY name")
+    fun observeFaculties(source: String = "GROUP"): Flow<List<FacultyEntity>>
+    @Query("SELECT * FROM courses WHERE source = :source AND facultyId = :facultyId ORDER BY course")
+    fun observeCourses(facultyId: Long, source: String = "GROUP"): Flow<List<CourseEntity>>
+    @Query("SELECT * FROM groups WHERE source = :source AND facultyId = :facultyId AND course = :course ORDER BY name")
+    fun observeGroups(facultyId: Long, course: Int, source: String = "GROUP"): Flow<List<GroupEntity>>
+    @Query("SELECT * FROM groups WHERE source = :source AND id = :id LIMIT 1")
+    suspend fun group(id: Long, source: String = "GROUP"): GroupEntity?
+    @Query("SELECT * FROM faculties WHERE source = :source AND id = :id LIMIT 1")
+    suspend fun faculty(id: Long, source: String = "GROUP"): FacultyEntity?
+    @Query("SELECT MAX(fetchedAt) FROM faculties WHERE source = :source")
+    suspend fun facultiesFetchedAt(source: String = "GROUP"): Long?
+    @Query("SELECT MAX(fetchedAt) FROM courses WHERE source = :source AND facultyId = :facultyId")
+    suspend fun coursesFetchedAt(facultyId: Long, source: String = "GROUP"): Long?
+    @Query("SELECT MAX(fetchedAt) FROM groups WHERE source = :source AND facultyId = :facultyId AND course = :course")
+    suspend fun groupsFetchedAt(facultyId: Long, course: Int, source: String = "GROUP"): Long?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFaculties(values: List<FacultyEntity>)
     @Insert(onConflict = OnConflictStrategy.REPLACE)

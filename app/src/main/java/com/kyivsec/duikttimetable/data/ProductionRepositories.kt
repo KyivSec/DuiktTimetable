@@ -132,104 +132,91 @@ class RoomScheduleRepository(
 
 class RoomTeacherDirectoryRepository(
     private val database: TimetableDatabase,
-    private val client: DuiktScheduleClient,
+    private val client: com.kyivsec.duikttimetable.data.remote.DirectoryClient,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) : TeacherDirectoryRepository {
     private val dao = database.timetableDao()
+    private val synchronizer = DirectorySynchronizer(database, clock)
+
     override fun observeChairs(): Flow<List<ChairInfo>> = dao.observeChairs().map { rows -> rows.map { ChairInfo(it.id, it.name) } }
     override fun observeTeachers(chairId: Long): Flow<List<TeacherInfo>> = dao.observeTeachers(chairId).map { rows ->
         val chairName = dao.observeChairs().first().firstOrNull { it.id == chairId }?.name.orEmpty()
         rows.map { it.toDomain(chairName) }
     }
-    override suspend fun ensureChairs(force: Boolean): SyncResult = syncIfNeeded(force, dao.chairsFetchedAt()) {
-        val now = Instant.now(clock)
-        val values = client.fetchChairs().map { ChairEntity(it.id, it.name, now.toEpochMilli()) }
-        dao.insertChairs(values)
-        SyncResult.Success(now, values.size)
+    override suspend fun ensureChairs(force: Boolean): SyncResult = synchronizer.sync(
+        "TEACHER/chairs", force, { dao.chairsFetchedAt() != null }, client::fetchChairs,
+    ) { values, fetchedAt ->
+        dao.deleteChairs()
+        dao.insertChairs(values.map { ChairEntity(it.id, it.name, fetchedAt) })
     }
-    override suspend fun ensureTeachers(chairId: Long, force: Boolean): SyncResult = syncIfNeeded(force, dao.teachersFetchedAt(chairId)) {
-        val now = Instant.now(clock)
-        val values = client.fetchTeachers(chairId).map { TeacherEntity(it.id, chairId, it.name, now.toEpochMilli()) }
-        dao.insertTeachers(values)
-        SyncResult.Success(now, values.size)
-    }
-    private suspend fun syncIfNeeded(force: Boolean, fetchedAt: Long?, block: suspend () -> SyncResult): SyncResult {
-        if (!force && fetchedAt != null && fetchedAt >= Instant.now(clock).minus(Duration.ofDays(7)).toEpochMilli()) return SyncResult.Success(Instant.now(clock), 0)
-        return runCatching { block() }.getOrElse {
-            if (it is CancellationException) throw it
-            SyncResult.Failure(it.toDataError(), fetchedAt != null)
-        }
+    override suspend fun ensureTeachers(chairId: Long, force: Boolean): SyncResult = synchronizer.sync(
+        "TEACHER/teachers/$chairId", force, { dao.teachersFetchedAt(chairId) != null },
+        { client.fetchTeachers(chairId) },
+    ) { values, fetchedAt ->
+        dao.deleteTeachers(chairId)
+        dao.insertTeachers(values.map { TeacherEntity(it.id, chairId, it.name, fetchedAt) })
     }
 }
 
 class RoomStudentDirectoryRepository(
     private val database: TimetableDatabase,
-    private val client: DuiktScheduleClient,
+    private val client: com.kyivsec.duikttimetable.data.remote.DirectoryClient,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) : StudentDirectoryRepository {
     private val dao = database.timetableDao()
+    private val synchronizer = DirectorySynchronizer(database, clock)
 
-    override suspend fun ensureStudentInstitutes(force: Boolean): SyncResult = syncDirectory(force, dao.facultiesFetchedAt()) {
-        val now = Instant.now(clock)
-        val values = client.fetchStudentInstitutes().map { FacultyEntity(it.id, it.name, now.toEpochMilli()) }
-        dao.insertFaculties(values)
-        SyncResult.Success(now, values.size)
+    override fun observeStudentInstitutes(): Flow<List<Institute>> = dao.observeFaculties("STUDENT").map { rows ->
+        rows.map { Institute(it.id, it.name, emptyList()) }
+            .sortedWith(compareBy<Institute> { it.name.contains("Аспірантура", ignoreCase = true) }.thenBy { it.name })
     }
-
-    override suspend fun ensureStudentCourses(instituteId: Long, force: Boolean): SyncResult = syncDirectory(force, dao.coursesFetchedAt(instituteId)) {
-        val now = Instant.now(clock)
-        val values = client.fetchStudentCourses(instituteId).map { CourseEntity(instituteId, it, now.toEpochMilli()) }
-        dao.insertCourses(values)
-        SyncResult.Success(now, values.size)
+    override fun observeStudentCourses(instituteId: Long): Flow<List<Int>> =
+        dao.observeCourses(instituteId, "STUDENT").map { rows -> rows.map { it.course } }
+    override fun observeStudentGroups(instituteId: Long, course: Int): Flow<List<GroupInfo>> =
+        dao.observeGroups(instituteId, course, "STUDENT").map { rows ->
+            val facultyName = dao.faculty(instituteId, "STUDENT")?.name.orEmpty()
+            rows.map { it.toDomain(facultyName) }
+        }
+    override suspend fun ensureStudentInstitutes(force: Boolean): SyncResult = synchronizer.sync(
+        "STUDENT/faculties", force, { dao.facultiesFetchedAt("STUDENT") != null }, client::fetchStudentInstitutes,
+    ) { values, fetchedAt ->
+        dao.deleteFaculties("STUDENT")
+        dao.insertFaculties(values.map { FacultyEntity(it.id, it.name, fetchedAt, "STUDENT") })
     }
-
-    override suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean): SyncResult = syncDirectory(force, dao.groupsFetchedAt(instituteId, course)) {
-        val now = Instant.now(clock)
-        val values = client.fetchStudentGroups(instituteId, course).map { GroupEntity(it.id, instituteId, course, it.name, now.toEpochMilli()) }
-        dao.insertGroups(values)
-        SyncResult.Success(now, values.size)
+    override suspend fun ensureStudentCourses(instituteId: Long, force: Boolean): SyncResult = synchronizer.sync(
+        "STUDENT/courses/$instituteId", force, { dao.coursesFetchedAt(instituteId, "STUDENT") != null },
+        { client.fetchStudentCourses(instituteId) },
+    ) { values, fetchedAt ->
+        dao.deleteCourses(instituteId, "STUDENT")
+        dao.insertCourses(values.map { CourseEntity(instituteId, it, fetchedAt, "STUDENT") })
     }
-
+    override suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean): SyncResult = synchronizer.sync(
+        "STUDENT/groups/$instituteId/$course", force, { dao.groupsFetchedAt(instituteId, course, "STUDENT") != null },
+        { client.fetchStudentGroups(instituteId, course) },
+    ) { values, fetchedAt ->
+        dao.deleteGroups(instituteId, course, "STUDENT")
+        dao.insertGroups(values.map { GroupEntity(it.id, instituteId, course, it.name, fetchedAt, "STUDENT") })
+    }
     override fun observeStudents(groupId: Long): Flow<List<StudentInfo>> = dao.observeStudents(groupId).map { rows ->
-        val facultyNames = rows.map(StudentEntity::facultyId).distinct().associateWith { dao.faculty(it)?.name.orEmpty() }
+        val facultyNames = rows.map(StudentEntity::facultyId).distinct().associateWith { dao.faculty(it, "STUDENT")?.name.orEmpty() }
         rows.map { it.toDomain(facultyNames[it.facultyId].orEmpty()) }
     }
-
-    override suspend fun ensureStudents(group: GroupInfo, force: Boolean): SyncResult {
-        val fetchedAt = dao.studentsFetchedAt(group.id)
-        if (!force && fetchedAt != null && fetchedAt >= Instant.now(clock).minus(Duration.ofDays(7)).toEpochMilli()) {
-            return SyncResult.Success(Instant.now(clock), 0)
-        }
-        return runCatching {
-            val now = Instant.now(clock)
-            val values = client.fetchStudents(group.instituteId, group.course, group.id).map {
-                StudentEntity(it.id, group.id, group.name, group.instituteId, group.course, it.name, now.toEpochMilli())
-            }
-            dao.insertStudents(values)
-            SyncResult.Success(now, values.size)
-        }.getOrElse {
-            if (it is CancellationException) throw it
-            SyncResult.Failure(it.toDataError(), fetchedAt != null)
-        }
-    }
-
-    private suspend fun syncDirectory(force: Boolean, fetchedAt: Long?, block: suspend () -> SyncResult): SyncResult {
-        if (!force && fetchedAt != null && fetchedAt >= Instant.now(clock).minus(Duration.ofDays(7)).toEpochMilli()) {
-            return SyncResult.Success(Instant.now(clock), 0)
-        }
-        return runCatching { block() }.getOrElse {
-            if (it is CancellationException) throw it
-            SyncResult.Failure(it.toDataError(), fetchedAt != null)
-        }
+    override suspend fun ensureStudents(group: GroupInfo, force: Boolean): SyncResult = synchronizer.sync(
+        "STUDENT/students/${group.id}", force, { dao.studentsFetchedAt(group.id) != null },
+        { client.fetchStudents(group.instituteId, group.course, group.id) },
+    ) { values, fetchedAt ->
+        dao.deleteStudents(group.id)
+        dao.insertStudents(values.map { StudentEntity(it.id, group.id, group.name, group.instituteId, group.course, it.name, fetchedAt) })
     }
 }
 
 class RoomGroupDirectoryRepository(
     private val database: TimetableDatabase,
-    private val client: DuiktScheduleClient,
+    private val client: com.kyivsec.duikttimetable.data.remote.DirectoryClient,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) : GroupDirectoryRepository {
     private val dao = database.timetableDao()
+    private val synchronizer = DirectorySynchronizer(database, clock)
 
     override fun observeInstitutes(): Flow<List<Institute>> = dao.observeFaculties().map { rows ->
         rows.map { Institute(it.id, it.name, emptyList()) }
@@ -240,39 +227,29 @@ class RoomGroupDirectoryRepository(
         val facultyName = dao.faculty(instituteId)?.name.orEmpty()
         rows.map { it.toDomain(facultyName) }
     }
-
-    override suspend fun ensureInstitutes(force: Boolean): SyncResult = syncIfNeeded(force, dao.facultiesFetchedAt()) {
-        val now = Instant.now(clock)
-        val values = client.fetchInstitutes().map { FacultyEntity(it.id, it.name, now.toEpochMilli()) }
-        dao.insertFaculties(values)
-        SyncResult.Success(now, values.size)
+    override suspend fun ensureInstitutes(force: Boolean): SyncResult = synchronizer.sync(
+        "GROUP/faculties", force, { dao.facultiesFetchedAt() != null }, client::fetchInstitutes,
+    ) { values, fetchedAt ->
+        dao.deleteFaculties()
+        dao.insertFaculties(values.map { FacultyEntity(it.id, it.name, fetchedAt) })
     }
-    override suspend fun ensureCourses(instituteId: Long, force: Boolean): SyncResult = syncIfNeeded(force, dao.coursesFetchedAt(instituteId)) {
-        val now = Instant.now(clock)
-        val values = client.fetchCourses(instituteId).map { CourseEntity(instituteId, it, now.toEpochMilli()) }
-        dao.insertCourses(values)
-        SyncResult.Success(now, values.size)
+    override suspend fun ensureCourses(instituteId: Long, force: Boolean): SyncResult = synchronizer.sync(
+        "GROUP/courses/$instituteId", force, { dao.coursesFetchedAt(instituteId) != null },
+        { client.fetchCourses(instituteId) },
+    ) { values, fetchedAt ->
+        dao.deleteCourses(instituteId)
+        dao.insertCourses(values.map { CourseEntity(instituteId, it, fetchedAt) })
     }
-    override suspend fun ensureGroups(instituteId: Long, course: Int, force: Boolean): SyncResult = syncIfNeeded(force, dao.groupsFetchedAt(instituteId, course)) {
-        val now = Instant.now(clock)
-        val values = client.fetchGroups(instituteId, course).map { GroupEntity(it.id, instituteId, course, it.name, now.toEpochMilli()) }
-        dao.insertGroups(values)
-        SyncResult.Success(now, values.size)
+    override suspend fun ensureGroups(instituteId: Long, course: Int, force: Boolean): SyncResult = synchronizer.sync(
+        "GROUP/groups/$instituteId/$course", force, { dao.groupsFetchedAt(instituteId, course) != null },
+        { client.fetchGroups(instituteId, course) },
+    ) { values, fetchedAt ->
+        dao.deleteGroups(instituteId, course)
+        dao.insertGroups(values.map { GroupEntity(it.id, instituteId, course, it.name, fetchedAt) })
     }
-
-    private suspend fun syncIfNeeded(force: Boolean, fetchedAt: Long?, block: suspend () -> SyncResult): SyncResult {
-        if (!force && fetchedAt != null && fetchedAt >= Instant.now(clock).minus(DIRECTORY_STALE_AFTER).toEpochMilli()) {
-            return SyncResult.Success(Instant.now(clock), 0)
-        }
-        return runCatching { block() }.getOrElse {
-            if (it is CancellationException) throw it
-            SyncResult.Failure(it.toDataError(), fetchedAt != null)
-        }
-    }
-    private companion object { val DIRECTORY_STALE_AFTER: Duration = Duration.ofDays(7) }
 }
 
-private fun Throwable.toDataError(): DataError = when (this) {
+internal fun Throwable.toDataError(): DataError = when (this) {
     is SocketTimeoutException -> DataError.Timeout
     is RejectedSessionException -> DataError.RejectedSession
     is HttpStatusException -> DataError.Http(statusCode)

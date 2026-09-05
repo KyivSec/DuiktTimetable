@@ -48,6 +48,9 @@ interface TeacherDirectoryRepository {
 }
 
 interface StudentDirectoryRepository {
+    fun observeStudentInstitutes(): Flow<List<Institute>>
+    fun observeStudentCourses(instituteId: Long): Flow<List<Int>>
+    fun observeStudentGroups(instituteId: Long, course: Int): Flow<List<GroupInfo>>
     suspend fun ensureStudentInstitutes(force: Boolean = false): SyncResult
     suspend fun ensureStudentCourses(instituteId: Long, force: Boolean = false): SyncResult
     suspend fun ensureStudentGroups(instituteId: Long, course: Int, force: Boolean = false): SyncResult

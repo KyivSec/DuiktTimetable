@@ -3,14 +3,27 @@ package com.kyivsec.duikttimetable
 import com.kyivsec.duikttimetable.data.remote.DuiktScheduleClient
 import com.kyivsec.duikttimetable.data.DateRange
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.EventListener
+import okhttp3.mockwebserver.SocketPolicy
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
+import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import com.kyivsec.duikttimetable.data.remote.HttpStatusException
+import com.kyivsec.duikttimetable.data.remote.RejectedSessionException
 
 class DuiktScheduleClientTest {
     private lateinit var server: MockWebServer
@@ -81,6 +94,56 @@ class DuiktScheduleClientTest {
         assertTrue(body.contains("TimeTableForm%5BstudentId%5D=9"))
         assertTrue(body.contains("TimeTableForm%5BdateStart%5D=01.09.2026"))
         assertTrue(body.contains("TimeTableForm%5BdateEnd%5D=07.09.2026"))
+    }
+
+    @Test fun `rejected csrf is refreshed and replayed once`() = runTest {
+        server.enqueue(MockResponse().setBody(initialPage("old")))
+        server.enqueue(MockResponse().setResponseCode(403))
+        server.enqueue(MockResponse().setBody(initialPage("new")))
+        server.enqueue(MockResponse().setBody(coursePage("next")))
+        val client = DuiktScheduleClient(server.url("/").toString().removeSuffix("/"))
+        assertEquals(listOf(1, 2, 3), client.fetchCourses(1))
+        server.takeRequest()
+        server.takeRequest()
+        server.takeRequest()
+        assertTrue(server.takeRequest().body.readUtf8().contains("_csrf-frontend=new"))
+        assertEquals(4, server.requestCount)
+    }
+
+    @Test fun `second session rejection is surfaced without another replay`() = runTest {
+        server.enqueue(MockResponse().setBody(initialPage("old")))
+        server.enqueue(MockResponse().setResponseCode(403))
+        server.enqueue(MockResponse().setBody(initialPage("new")))
+        server.enqueue(MockResponse().setResponseCode(403))
+        val client = DuiktScheduleClient(server.url("/").toString().removeSuffix("/"))
+        val error = runCatching { client.fetchCourses(1) }.exceptionOrNull()
+        assertTrue(error is RejectedSessionException)
+        assertEquals(4, server.requestCount)
+    }
+
+    @Test fun `transient errors retry but permanent errors do not`() = runTest {
+        val client = DuiktScheduleClient(server.url("/").toString().removeSuffix("/"))
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setBody(initialPage("token")))
+        assertEquals(1, client.fetchInstitutes().size)
+        assertEquals(2, server.requestCount)
+        server.enqueue(MockResponse().setResponseCode(404))
+        val error = runCatching { client.fetchInstitutes() }.exceptionOrNull()
+        assertEquals(404, (error as HttpStatusException).statusCode)
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test fun `cancellation cancels the underlying HTTP call`() = runTest {
+        val failed = CountDownLatch(1)
+        val http = DuiktScheduleClient.defaultClient().newBuilder().eventListener(object : EventListener() {
+            override fun callFailed(call: Call, ioe: IOException) { failed.countDown() }
+        }).build()
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+        val client = DuiktScheduleClient(server.url("/").toString().removeSuffix("/"), client = http)
+        val request = launch { client.fetchInstitutes() }
+        assertNotNull(withContext(Dispatchers.IO) { server.takeRequest(5, TimeUnit.SECONDS) })
+        request.cancelAndJoin()
+        assertTrue(withContext(Dispatchers.IO) { failed.await(5, TimeUnit.SECONDS) })
     }
 
     private fun initialPage(token: String) = """
