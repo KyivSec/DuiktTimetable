@@ -26,6 +26,10 @@ import com.kyivsec.duikttimetable.viewmodel.ScheduleViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -296,6 +300,110 @@ class ScheduleViewModelTest {
         viewModel.selectDate(nextDate)
         assertEquals(nextDate, viewModel.uiState.value.selectedDate)
         assertEquals(nextWeek, viewModel.uiState.value.selectedWeek)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `obsolete manual and full refreshes cannot publish errors or clear a new refresh`() = runTest(dispatcher) {
+        for (fullReload in listOf(false, true)) {
+            val base = FakeScheduleRepository()
+            val oldRequest = CompletableDeferred<SyncResult>()
+            val newRequest = CompletableDeferred<SyncResult>()
+            var delayOldRequest = false
+            val repository = object : ScheduleRepository by base {
+                override suspend fun syncSchedule(owner: TimetableOwner, range: DateRange, force: Boolean): SyncResult =
+                    withContext(NonCancellable) { oldRequest.await() }
+                override suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean): SyncResult =
+                    when {
+                        owner.id == 2002L -> newRequest.await()
+                        delayOldRequest -> withContext(NonCancellable) { oldRequest.await() }
+                        else -> base.syncCurrentSemester(owner, force)
+                    }
+            }
+            val viewModel = ScheduleViewModel(repository, base, FakeSettingsRepository(), clock, dispatcher)
+            runCurrent()
+            delayOldRequest = true
+            if (fullReload) viewModel.fullReload() else viewModel.refreshVisible()
+            runCurrent()
+            viewModel.applyGroup(GroupInfo(2002, "ПД-32", 1, "ІТ", 3))
+            runCurrent()
+            assertTrue(viewModel.uiState.value.isRefreshing)
+
+            oldRequest.complete(SyncResult.Failure(com.kyivsec.duikttimetable.data.DataError.Offline, true))
+            runCurrent()
+            assertEquals(2002L, viewModel.uiState.value.activeOwner?.id)
+            assertNull(viewModel.uiState.value.errorMessage)
+            assertTrue(viewModel.uiState.value.isRefreshing)
+            assertFalse(viewModel.uiState.value.isFullReloading)
+            newRequest.complete(SyncResult.Success(clock.instant(), 0))
+            runCurrent()
+            assertFalse(viewModel.uiState.value.isRefreshing)
+            viewModel.viewModelScope.cancel()
+        }
+    }
+
+    @Test fun `schedule calculation preserves navigation and expansion made while it was pending`() = runTest(dispatcher) {
+        val base = FakeScheduleRepository()
+        val date = LocalDate.of(2026, 8, 28)
+        val lesson = Lesson("1", "Algorithms", LessonType.LAB, LocalTime.of(9, 30), LocalTime.of(10, 50))
+        val days = MutableStateFlow(listOf(ScheduleDay(date, listOf(lesson))))
+        val repository = object : ScheduleRepository by base {
+            override fun observeSchedule(owner: TimetableOwner, range: DateRange) = days
+        }
+        val calculationScheduler = TestCoroutineScheduler()
+        val viewModel = ScheduleViewModel(repository, base, FakeSettingsRepository(), clock, StandardTestDispatcher(calculationScheduler))
+        runCurrent()
+        calculationScheduler.runCurrent()
+        runCurrent()
+        assertTrue(date in viewModel.uiState.value.expandedDates)
+
+        days.value = listOf(ScheduleDay(date, listOf(lesson.copy(subject = "Updated"))))
+        runCurrent()
+        val nextDate = date.plusDays(1)
+        val nextWeek = viewModel.uiState.value.selectedWeek.plusWeeks(1)
+        viewModel.selectDate(nextDate)
+        viewModel.selectWeek(nextWeek)
+        viewModel.toggleExpanded(date)
+        calculationScheduler.runCurrent()
+        runCurrent()
+
+        assertEquals(nextDate, viewModel.uiState.value.selectedDate)
+        assertEquals(nextWeek, viewModel.uiState.value.selectedWeek)
+        assertFalse(date in viewModel.uiState.value.expandedDates)
+        assertEquals("Updated", viewModel.uiState.value.weeks.flatMap { it.days }.first { it.date == date }.lessons.single().subject)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `changing institute cancels the previous group observer`() = runTest(dispatcher) {
+        val base = FakeScheduleRepository()
+        val oldGroups = MutableStateFlow(listOf(GroupInfo(1001, "ПД-31", 1, "ІТ", 3)))
+        val directory = object : GroupDirectoryRepository by base {
+            override fun observeGroups(instituteId: Long, course: Int) = oldGroups
+        }
+        val viewModel = ScheduleViewModel(base, directory, FakeSettingsRepository(), clock, dispatcher)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.directoryGroups.isNotEmpty())
+        viewModel.selectDraftInstitute(2)
+        oldGroups.value = listOf(GroupInfo(1002, "Old branch", 1, "ІТ", 3))
+        runCurrent()
+        assertTrue(viewModel.uiState.value.directoryGroups.isEmpty())
+        assertNull(viewModel.uiState.value.draftCourse)
+        assertFalse(viewModel.uiState.value.isGroupsLoading)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `late preference load cannot replace an explicit owner selection`() = runTest(dispatcher) {
+        val base = FakeScheduleRepository()
+        val loaded = CompletableDeferred<StoredPreferences>()
+        val preferences = object : SettingsRepository by FakeSettingsRepository() {
+            override suspend fun load() = loaded.await()
+        }
+        val viewModel = ScheduleViewModel(base, base, preferences, clock, dispatcher)
+        runCurrent()
+        viewModel.applyGroup(GroupInfo(2002, "ПД-32", 1, "ІТ", 3))
+        loaded.complete(StoredPreferences(selectedGroupId = 1001, selectedInstituteId = 1, selectedCourse = 3, selectedGroupName = "ПД-31"))
+        runCurrent()
+        assertEquals(2002L, viewModel.uiState.value.activeOwner?.id)
+        assertFalse(viewModel.uiState.value.isLoading)
         viewModel.viewModelScope.cancel()
     }
 
