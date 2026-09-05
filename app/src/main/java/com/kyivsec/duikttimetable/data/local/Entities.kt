@@ -76,3 +76,12 @@ data class LessonEntity(
 
 @Entity(tableName = "cached_schedule_days", primaryKeys = ["ownerType", "ownerId", "date"], indices = [Index("date")])
 data class CachedScheduleDayEntity(val ownerType: String, val ownerId: Long, val date: String, val fetchedAt: Long)
+
+@Entity(tableName = "semester_syncs", primaryKeys = ["ownerType", "ownerId"])
+data class SemesterSyncEntity(
+    val ownerType: String,
+    val ownerId: Long,
+    val startDate: String,
+    val endDate: String,
+    val fetchedAt: Long,
+)

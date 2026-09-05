@@ -26,7 +26,7 @@ class TimetableMigrationTest {
         }
 
         val db = helper.runMigrationsAndValidate(
-            DATABASE, 3, true, TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3,
+            DATABASE, 4, true, TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4,
         )
         assertEquals(1, db.count("SELECT COUNT(*) FROM lessons WHERE ownerType='GROUP' AND ownerId=17 AND id='old'"))
         assertEquals(1, db.count("SELECT COUNT(*) FROM cached_schedule_days WHERE ownerType='GROUP' AND ownerId=17"))
@@ -34,6 +34,7 @@ class TimetableMigrationTest {
         assertEquals(2, db.count("SELECT COUNT(*) FROM cached_schedule_days WHERE ownerId=17 AND date='2026-09-04'"))
         db.execSQL("INSERT INTO students(id,groupId,groupName,facultyId,course,name,fetchedAt) VALUES(9,17,'ПД-31',1,3,'Іваненко Іван Іванович',456)")
         assertEquals(1, db.count("SELECT COUNT(*) FROM students WHERE groupId=17"))
+        assertEquals(0, db.count("SELECT COUNT(*) FROM semester_syncs"))
         db.close()
     }
 

@@ -70,3 +70,5 @@ The response parser:
 7. Generates deterministic SHA-256 lesson identifiers and stores fetched ranges transactionally in Room.
 
 On the first launch, the app opens an empty institute/course/group selector and does not request a schedule until the user explicitly chooses all three values. Cached days are displayed immediately on later launches. The app then refreshes the current semester once for the persisted selected group. Selecting another group performs one update for that explicit selection. Day/week swipes, mode changes, item expansion, and returning to today read Room only and never trigger network requests. Successful empty dates are cached as valid coverage, and failed requests do not erase existing data.
+
+Semester freshness is tracked separately from individual day coverage, by timetable owner and semester dates. A successful full semester fetch remains fresh for 30 minutes; refreshing a day or week does not extend that interval. Responses without semester boundaries cache only the requested probe range and do not mark the semester as complete.

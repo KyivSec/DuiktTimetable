@@ -2,6 +2,7 @@ package com.kyivsec.duikttimetable.data
 
 import androidx.room.withTransaction
 import com.kyivsec.duikttimetable.data.local.CachedScheduleDayEntity
+import com.kyivsec.duikttimetable.data.local.SemesterSyncEntity
 import com.kyivsec.duikttimetable.data.local.CourseEntity
 import com.kyivsec.duikttimetable.data.local.FacultyEntity
 import com.kyivsec.duikttimetable.data.local.GroupEntity
@@ -78,9 +79,11 @@ class RoomScheduleRepository(
     override suspend fun syncCurrentSemester(owner: TimetableOwner, force: Boolean): SyncResult {
         val today = LocalDate.now(clock)
         val probeRange = DateRange(today.minusWeeks(1), today.plusWeeks(1))
-        // A semester sync writes every day atomically, so today's marker is enough to prove
-        // that the cached semester completed. The probe extends beyond semester boundaries.
-        if (!force && isFresh(owner, DateRange(today, today))) return SyncResult.Success(Instant.now(clock), 0)
+        val previous = dao.semesterSync(owner.type.name, owner.id)
+        if (!force && previous != null &&
+            today.toString() in previous.startDate..previous.endDate &&
+            previous.fetchedAt >= Instant.now(clock).minus(SCHEDULE_STALE_AFTER).toEpochMilli()
+        ) return SyncResult.Success(Instant.ofEpochMilli(previous.fetchedAt), 0)
         return runCatching {
             val provider = providers.providerFor(owner)
             val probe = provider.fetch(owner, probeRange)
@@ -93,6 +96,12 @@ class RoomScheduleRepository(
                 dao.deleteLessons(owner.type.name, owner.id, target.startInclusive.toString(), target.endInclusive.toString())
                 dao.insertLessons(mapped.map { (date, lesson) -> lesson.toEntity(owner, date) })
                 dao.insertCachedDays(target.dates.map { CachedScheduleDayEntity(owner.type.name, owner.id, it.toString(), completed.toEpochMilli()) })
+                if (probe.semesterRange != null) {
+                    dao.insertSemesterSync(SemesterSyncEntity(
+                        owner.type.name, owner.id, target.startInclusive.toString(),
+                        target.endInclusive.toString(), completed.toEpochMilli(),
+                    ))
+                }
             }
             SyncResult.Success(completed, mapped.size)
         }.getOrElse {
@@ -104,6 +113,7 @@ class RoomScheduleRepository(
     override suspend fun pruneBefore(date: LocalDate) = database.withTransaction {
         dao.pruneLessons(date.toString())
         dao.pruneCachedDays(date.toString())
+        dao.invalidatePrunedSemesters(date.toString())
     }
 
     private suspend fun isFresh(owner: TimetableOwner, range: DateRange): Boolean {

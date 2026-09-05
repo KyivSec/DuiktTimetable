@@ -27,7 +27,7 @@ class DuiktTimetableApplication : Application() {
 
 class AppContainer(application: Application) {
     private val database = Room.databaseBuilder(application, TimetableDatabase::class.java, "duikt_timetable.db")
-        .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3)
+        .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4)
         .build()
     private val client = DuiktScheduleClient()
     val scheduleRepository: ScheduleRepository = RoomScheduleRepository(database, client)

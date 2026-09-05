@@ -8,6 +8,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TimetableDao {
+    @Query("SELECT * FROM semester_syncs WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun semesterSync(ownerType: String, ownerId: Long): SemesterSyncEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSemesterSync(value: SemesterSyncEntity)
+    @Query("DELETE FROM semester_syncs WHERE startDate < :date")
+    suspend fun invalidatePrunedSemesters(date: String)
+
     @Query("SELECT * FROM faculties ORDER BY name")
     fun observeFaculties(): Flow<List<FacultyEntity>>
     @Query("SELECT * FROM courses WHERE facultyId = :facultyId ORDER BY course")

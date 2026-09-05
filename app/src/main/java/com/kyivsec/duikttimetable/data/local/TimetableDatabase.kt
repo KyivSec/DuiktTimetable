@@ -6,14 +6,20 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [FacultyEntity::class, CourseEntity::class, GroupEntity::class, ChairEntity::class, TeacherEntity::class, StudentEntity::class, LessonEntity::class, CachedScheduleDayEntity::class],
-    version = 3,
+    entities = [FacultyEntity::class, CourseEntity::class, GroupEntity::class, ChairEntity::class, TeacherEntity::class, StudentEntity::class, LessonEntity::class, CachedScheduleDayEntity::class, SemesterSyncEntity::class],
+    version = 4,
     exportSchema = true,
 )
 abstract class TimetableDatabase : RoomDatabase() {
     abstract fun timetableDao(): TimetableDao
 
     companion object {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Existing day markers cannot prove that a complete semester was fetched.
+                db.execSQL("CREATE TABLE IF NOT EXISTS semester_syncs (ownerType TEXT NOT NULL, ownerId INTEGER NOT NULL, startDate TEXT NOT NULL, endDate TEXT NOT NULL, fetchedAt INTEGER NOT NULL, PRIMARY KEY(ownerType, ownerId))")
+            }
+        }
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS chairs (id INTEGER NOT NULL, name TEXT NOT NULL, fetchedAt INTEGER NOT NULL, PRIMARY KEY(id))")
