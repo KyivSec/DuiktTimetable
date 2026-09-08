@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -119,6 +120,14 @@ fun SettingsDrawer(
             }
             HorizontalDivider()
             Row(
+                Modifier.fillMaxWidth().clickable { uriHandler.openUri(PrivacyPolicyUrl) }.padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.PrivacyTip, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.privacy_policy), style = MaterialTheme.typography.bodyLarge)
+            }
+            Row(
                 Modifier.fillMaxWidth().clickable { uriHandler.openUri(RepositoryUrl) }.padding(horizontal = 20.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -147,6 +156,7 @@ private fun ReloadIcon(spinning: Boolean) {
 }
 
 private const val RepositoryUrl = "https://github.com/KyivSec/DuiktTimetable"
+private const val PrivacyPolicyUrl = "https://raw.githubusercontent.com/KyivSec/DuiktTimetable/play-store-privacy/PRIVACY_POLICY.md"
 
 @Composable private fun SectionTitle(text: String) = Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
 

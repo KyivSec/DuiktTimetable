@@ -18,7 +18,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.kyivsec.duikttimetable"
+        applicationId = "com.kyivsec.duikt_timetable"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

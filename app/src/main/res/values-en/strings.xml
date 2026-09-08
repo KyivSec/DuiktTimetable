@@ -55,6 +55,7 @@
     <string name="reload_in_progress">Refreshing…</string>
     <string name="last_full_refresh">Last full refresh: %1$s</string>
     <string name="never_fully_refreshed">A full refresh has not been run yet</string>
+    <string name="privacy_policy">Privacy policy</string>
 
     <string name="institute">Institute</string>
     <string name="course">Year</string>

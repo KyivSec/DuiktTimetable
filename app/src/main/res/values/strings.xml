@@ -57,6 +57,7 @@
     <string name="reload_in_progress">Оновлення…</string>
     <string name="last_full_refresh">Останнє повне оновлення: %1$s</string>
     <string name="never_fully_refreshed">Повне оновлення ще не виконувалося</string>
+    <string name="privacy_policy">Політика конфіденційності</string>
 
     <string name="institute">Інститут</string>
     <string name="course">Курс</string>
