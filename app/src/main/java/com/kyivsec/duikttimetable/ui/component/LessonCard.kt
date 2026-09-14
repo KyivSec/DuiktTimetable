@@ -43,7 +43,7 @@ fun LessonType.accentColor(): Color = when (this) {
     LessonType.OTHER -> OtherAccent
 }
 
-private val classStartTimes = listOf(8 * 60, 9 * 60 + 30, 11 * 60 + 10, 12 * 60 + 40, 14 * 60 + 10)
+private val classStartTimes = listOf(8 * 60, 9 * 60 + 30, 11 * 60 + 10, 12 * 60 + 40, 14 * 60 + 10, 15 * 60 + 40)
 
 /** Returns the class number for the standard timetable slot containing this start time. */
 internal fun Lesson.classNumber(): Int = classStartTimes.indexOfLast { it <= startTime.hour * 60 + startTime.minute }
