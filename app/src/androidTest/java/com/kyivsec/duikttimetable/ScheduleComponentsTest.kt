@@ -17,6 +17,7 @@ import com.kyivsec.duikttimetable.model.ScheduleDay
 import com.kyivsec.duikttimetable.model.ScheduleMode
 import com.kyivsec.duikttimetable.ui.component.ScheduleModeSelector
 import com.kyivsec.duikttimetable.ui.component.DaySchedule
+import com.kyivsec.duikttimetable.ui.component.LessonCard
 import com.kyivsec.duikttimetable.ui.component.WeekSchedule
 import com.kyivsec.duikttimetable.ui.component.WeekDayCard
 import com.kyivsec.duikttimetable.ui.theme.DuiktTimetableTheme
@@ -50,6 +51,13 @@ class ScheduleComponentsTest {
         }
         composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.lesson_count, 1, 1)).performClick()
         composeRule.onNodeWithText("Дуже довга назва предмета для перевірки").assertIsDisplayed()
+    }
+
+    @Test fun dayLessonCardShowsRoom() {
+        val lesson = Lesson("1", "Subject", LessonType.LECTURE, LocalTime.of(8, 0), LocalTime.of(9, 20), room = "201")
+        composeRule.setContent { DuiktTimetableTheme { LessonCard(lesson, {}) } }
+        composeRule.onNodeWithText("08:00 – 09:20").assertIsDisplayed()
+        composeRule.onNodeWithText("201").assertIsDisplayed()
     }
 
     @Test fun swipingDayUpdatesSelectedPill() {
