@@ -89,6 +89,8 @@ class ScheduleScreenInteractionTest {
     @Test fun settingsDrawerWorks() {
         composeRule.onNodeWithContentDescription(context.getString(R.string.open_settings)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.settings)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.theme_oled)).performClick()
+        composeRule.waitUntil(5_000) { viewModel.uiState.value.settings.themeMode == ThemeMode.OLED }
         composeRule.onNodeWithText(context.getString(R.string.reload_all)).performScrollTo().performClick()
         composeRule.onNodeWithText(context.getString(R.string.reload_in_progress)).assertIsDisplayed()
         fullReload.complete(SyncResult.Success(Instant.parse("2026-09-07T07:00:00Z"), 0))

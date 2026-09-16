@@ -43,6 +43,7 @@
     <string name="theme_system">Системна</string>
     <string name="theme_light">Світла</string>
     <string name="theme_dark">Темна</string>
+    <string name="theme_oled">OLED</string>
     <string name="language">Мова</string>
     <string name="language_system">Системна за замовчуванням</string>
     <string name="language_ukrainian">Українська</string>

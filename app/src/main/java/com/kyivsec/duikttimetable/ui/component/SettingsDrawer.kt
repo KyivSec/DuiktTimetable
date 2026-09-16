@@ -83,6 +83,7 @@ fun SettingsDrawer(
                 RadioChoice(stringResource(R.string.theme_system), settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
                 RadioChoice(stringResource(R.string.theme_light), settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
                 RadioChoice(stringResource(R.string.theme_dark), settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
+                RadioChoice(stringResource(R.string.theme_oled), settings.themeMode == ThemeMode.OLED) { onThemeChange(ThemeMode.OLED) }
                 Spacer(Modifier.height(10.dp))
                 DropdownSelector(
                     label = stringResource(R.string.language),

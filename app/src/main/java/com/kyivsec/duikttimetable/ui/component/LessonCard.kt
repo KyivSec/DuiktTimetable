@@ -1,6 +1,7 @@
 package com.kyivsec.duikttimetable.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,18 +69,17 @@ internal fun ClassNumberBadge(lesson: Lesson) {
 
 @Composable
 fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifier, isPast: Boolean = false) {
-    Card(
-        modifier = modifier.graphicsLayer { alpha = if (isPast) 0.58f else 1f }.clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Row(
-            Modifier.fillMaxSize(),
+    val shape = RoundedCornerShape(12.dp)
+    Box(modifier.graphicsLayer { alpha = if (isPast) 0.58f else 1f }.clickable(onClick = onClick)) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
-            Box(Modifier.width(5.dp).fillMaxHeight().background(lesson.type.accentColor()))
             Row(
-                Modifier.weight(1f).fillMaxHeight().padding(horizontal = 10.dp, vertical = 8.dp),
+                Modifier.fillMaxSize().padding(start = 15.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ClassNumberBadge(lesson)
@@ -93,6 +93,9 @@ fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifie
                     }
                 }
             }
+        }
+        Box(Modifier.fillMaxSize().clip(shape)) {
+            Box(Modifier.width(5.dp).fillMaxHeight().background(lesson.type.accentColor()))
         }
     }
 }
