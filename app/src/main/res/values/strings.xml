@@ -65,6 +65,8 @@
     <string name="group">Група</string>
     <string name="cancel">Скасувати</string>
     <string name="apply">Застосувати</string>
+    <string name="search_options">Пошук</string>
+    <string name="no_search_results">Нічого не знайдено</string>
 
     <string name="lesson_type_lecture">Лекція</string>
     <string name="lesson_type_practice">Практична робота</string>

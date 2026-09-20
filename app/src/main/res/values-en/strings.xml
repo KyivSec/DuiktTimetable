@@ -63,6 +63,8 @@
     <string name="group">Group</string>
     <string name="cancel">Cancel</string>
     <string name="apply">Apply</string>
+    <string name="search_options">Search</string>
+    <string name="no_search_results">No results found</string>
 
     <string name="lesson_type_lecture">Lecture</string>
     <string name="lesson_type_practice">Practical class</string>

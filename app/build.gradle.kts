@@ -14,7 +14,7 @@ room {
 }
 
 android {
-    namespace = "com.kyivsec.duikttimetable"
+    namespace = "com.kyivsec.duikt_timetable"
     compileSdk = 36
 
     defaultConfig {
