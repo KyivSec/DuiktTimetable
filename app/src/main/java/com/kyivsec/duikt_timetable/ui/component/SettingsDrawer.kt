@@ -178,8 +178,11 @@ private const val PrivacyPolicyUrl = "https://raw.githubusercontent.com/KyivSec/
 )
 
 @Composable private fun RadioChoice(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected, onClick)
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
