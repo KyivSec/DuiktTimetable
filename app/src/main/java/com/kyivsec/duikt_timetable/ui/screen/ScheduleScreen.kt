@@ -138,7 +138,7 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
             ) {
                 TopScheduleBar(
                     groupName = state.activeOwner?.displayName ?: stringResource(R.string.select_timetable_owner),
-                    isRefreshing = state.isRefreshing,
+                    isRefreshing = state.isRefreshing || state.isFullReloading,
                     onMenuClick = { scope.launch { drawerState.open() } },
                     onGroupClick = openOwnerSelector,
                     onRefreshClick = viewModel::refreshVisible,

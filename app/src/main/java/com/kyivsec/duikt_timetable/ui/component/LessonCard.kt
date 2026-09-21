@@ -131,7 +131,7 @@ fun LessonCard(lesson: Lesson, onClick: () -> Unit, modifier: Modifier = Modifie
             }
         }
         Box(Modifier.fillMaxSize().clip(shape)) {
-            Box(Modifier.width(4.dp).fillMaxHeight().background(if (isPast) accent.copy(alpha = 0.7f) else accent))
+            Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
         }
     }
 }

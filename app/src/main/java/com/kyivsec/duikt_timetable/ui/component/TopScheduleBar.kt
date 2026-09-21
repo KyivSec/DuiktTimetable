@@ -46,7 +46,7 @@ fun TopScheduleBar(
     val controlColors = IconButtonDefaults.iconButtonColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-        disabledContentColor = MaterialTheme.colorScheme.onSurface,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     )
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
