@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.kyivsec.duikt_timetable.R
 import com.kyivsec.duikt_timetable.model.ScheduleSettings
@@ -86,7 +87,11 @@ fun SettingsDrawer(
                 RadioChoice(stringResource(R.string.theme_system), settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
                 RadioChoice(stringResource(R.string.theme_light), settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
                 RadioChoice(stringResource(R.string.theme_dark), settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
-                RadioChoice(stringResource(R.string.theme_oled), settings.themeMode == ThemeMode.OLED) { onThemeChange(ThemeMode.OLED) }
+                RadioChoice(
+                    stringResource(R.string.theme_oled),
+                    settings.themeMode == ThemeMode.OLED,
+                    testTag = "theme:OLED",
+                ) { onThemeChange(ThemeMode.OLED) }
                 Spacer(Modifier.height(10.dp))
                 DropdownSelector(
                     label = stringResource(R.string.language),
@@ -177,12 +182,18 @@ private const val PrivacyPolicyUrl = "https://raw.githubusercontent.com/KyivSec/
     modifier = Modifier.padding(bottom = 10.dp),
 )
 
-@Composable private fun RadioChoice(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = null)
+@Composable private fun RadioChoice(
+    label: String,
+    selected: Boolean,
+    testTag: String? = null,
+    onClick: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier,
+        )
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
