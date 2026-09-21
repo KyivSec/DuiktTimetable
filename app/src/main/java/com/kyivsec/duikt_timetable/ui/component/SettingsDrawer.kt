@@ -1,6 +1,5 @@
 package com.kyivsec.duikt_timetable.ui.component
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,21 +13,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.kyivsec.duikt_timetable.R
 import com.kyivsec.duikt_timetable.model.ScheduleSettings
@@ -53,6 +52,7 @@ import com.kyivsec.duikt_timetable.util.LanguageHandler
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsDrawer(
@@ -74,6 +74,15 @@ fun SettingsDrawer(
         }
     }
     val selectedLanguageOption = languageOptions.first { it.first == selectedLanguage }
+    val themeOptions = ThemeMode.entries.map { themeMode ->
+        themeMode to when (themeMode) {
+            ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+            ThemeMode.DARK -> stringResource(R.string.theme_dark)
+            ThemeMode.OLED -> stringResource(R.string.theme_oled)
+        }
+    }
+    val selectedThemeOption = themeOptions.first { it.first == settings.themeMode }
     ModalDrawerSheet(
         modifier = Modifier.fillMaxHeight().fillMaxWidth(0.88f),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
@@ -83,15 +92,13 @@ fun SettingsDrawer(
                 Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(20.dp))
                 SectionTitle(stringResource(R.string.appearance))
-                Text(stringResource(R.string.theme), style = MaterialTheme.typography.bodyMedium)
-                RadioChoice(stringResource(R.string.theme_system), settings.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM) }
-                RadioChoice(stringResource(R.string.theme_light), settings.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT) }
-                RadioChoice(stringResource(R.string.theme_dark), settings.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK) }
-                RadioChoice(
-                    stringResource(R.string.theme_oled),
-                    settings.themeMode == ThemeMode.OLED,
-                    testTag = "theme:OLED",
-                ) { onThemeChange(ThemeMode.OLED) }
+                DropdownSelector(
+                    label = stringResource(R.string.theme),
+                    selected = selectedThemeOption,
+                    options = themeOptions,
+                    optionLabel = { it.second },
+                    onSelected = { onThemeChange(it.first) },
+                )
                 Spacer(Modifier.height(10.dp))
                 DropdownSelector(
                     label = stringResource(R.string.language),
@@ -106,8 +113,8 @@ fun SettingsDrawer(
                 RadioChoice(stringResource(R.string.day), settings.startupMode == ScheduleMode.DAY) { onStartupModeChange(ScheduleMode.DAY) }
                 RadioChoice(stringResource(R.string.week), settings.startupMode == ScheduleMode.WEEK) { onStartupModeChange(ScheduleMode.WEEK) }
                 CheckboxChoice(stringResource(R.string.hide_classes_in_week_view), settings.hideClassesInWeekView, onHideClassesInWeekViewChange)
-                Stepper(stringResource(R.string.previous_days), settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
-                Stepper(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
+                IntegerSlider(stringResource(R.string.previous_days), settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
+                IntegerSlider(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
                 Spacer(Modifier.height(28.dp))
                 SectionTitle(stringResource(R.string.data))
                 CheckboxChoice(stringResource(R.string.fast_update), settings.fastUpdate, onFastUpdateChange)
@@ -185,14 +192,12 @@ private const val PrivacyPolicyUrl = "https://raw.githubusercontent.com/KyivSec/
 @Composable private fun RadioChoice(
     label: String,
     selected: Boolean,
-    testTag: String? = null,
     onClick: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         RadioButton(
             selected = selected,
             onClick = onClick,
-            modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier,
         )
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
@@ -208,11 +213,19 @@ private const val PrivacyPolicyUrl = "https://raw.githubusercontent.com/KyivSec/
     }
 }
 
-@Composable private fun Stepper(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        IconButton(onClick = { onChange(value - 1) }, enabled = value > range.first) { Icon(Icons.Rounded.Remove, stringResource(R.string.decrease)) }
-        Text(value.toString(), style = MaterialTheme.typography.titleSmall)
-        IconButton(onClick = { onChange(value + 1) }, enabled = value < range.last) { Icon(Icons.Rounded.Add, stringResource(R.string.increase)) }
+@Composable private fun IntegerSlider(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
+    var sliderValue by remember(value) { mutableFloatStateOf(value.toFloat()) }
+    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(sliderValue.roundToInt().toString(), style = MaterialTheme.typography.titleSmall)
+        }
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = range.last - range.first - 1,
+            onValueChangeFinished = { onChange(sliderValue.roundToInt()) },
+        )
     }
 }
