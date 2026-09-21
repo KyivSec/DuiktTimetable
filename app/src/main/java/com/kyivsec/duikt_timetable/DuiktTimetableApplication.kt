@@ -14,6 +14,7 @@ import com.kyivsec.duikt_timetable.data.StudentDirectoryRepository
 import com.kyivsec.duikt_timetable.data.RoomStudentDirectoryRepository
 import com.kyivsec.duikt_timetable.data.local.TimetableDatabase
 import com.kyivsec.duikt_timetable.data.remote.DuiktScheduleClient
+import com.kyivsec.duikt_timetable.notification.ScheduleNotificationCoordinator
 
 class DuiktTimetableApplication : Application() {
     lateinit var container: AppContainer
@@ -35,4 +36,9 @@ class AppContainer(application: Application) {
     val teacherDirectoryRepository: TeacherDirectoryRepository = RoomTeacherDirectoryRepository(database, client)
     val studentDirectoryRepository: StudentDirectoryRepository = RoomStudentDirectoryRepository(database, client)
     val settingsRepository: SettingsRepository = PreferencesRepository(application)
+    val notificationCoordinator = ScheduleNotificationCoordinator(
+        application,
+        database.timetableDao(),
+        settingsRepository,
+    ).also { it.start() }
 }

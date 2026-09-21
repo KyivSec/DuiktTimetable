@@ -318,6 +318,8 @@ class ScheduleViewModel(
     fun updateTheme(value: ThemeMode) = updateSettings { it.copy(themeMode = value) }
     fun updateStartupMode(value: ScheduleMode) = updateSettings { it.copy(startupMode = value) }
     fun updateHideClassesInWeekView(value: Boolean) = updateSettings { it.copy(hideClassesInWeekView = value) }
+    fun updateImmediateNotifications(value: Boolean) = updateSettings { it.copy(immediateNotificationsEnabled = value) }
+    fun updatePersistentNotification(value: Boolean) = updateSettings { it.copy(persistentNotificationEnabled = value) }
     fun updateFastUpdate(value: Boolean) = updateSettings { it.copy(fastUpdate = value) }
     fun updatePreviousDays(value: Int) = updateSettings { it.copy(previousDaysToKeep = value.coerceIn(0, 30)) }
     fun updatePreviousWeeks(value: Int) = updateSettings { it.copy(previousWeeksToKeep = value.coerceIn(0, 12)) }

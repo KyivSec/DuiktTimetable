@@ -78,6 +78,10 @@ interface TimetableDao {
 
     @Query("SELECT * FROM lessons WHERE ownerType = :ownerType AND ownerId = :ownerId AND date BETWEEN :start AND :end ORDER BY date, startMinute, endMinute")
     fun observeLessons(ownerType: String, ownerId: Long, start: String, end: String): Flow<List<LessonEntity>>
+    @Query("SELECT * FROM lessons WHERE ownerType = :ownerType AND ownerId = :ownerId AND date >= :start ORDER BY date, startMinute, endMinute")
+    fun observeNotificationLessons(ownerType: String, ownerId: Long, start: String): Flow<List<LessonEntity>>
+    @Query("SELECT * FROM lessons WHERE ownerType = :ownerType AND ownerId = :ownerId AND date >= :start ORDER BY date, startMinute, endMinute")
+    suspend fun notificationLessons(ownerType: String, ownerId: Long, start: String): List<LessonEntity>
     @Query("SELECT * FROM cached_schedule_days WHERE ownerType = :ownerType AND ownerId = :ownerId AND date BETWEEN :start AND :end")
     fun observeCachedDays(ownerType: String, ownerId: Long, start: String, end: String): Flow<List<CachedScheduleDayEntity>>
     @Query("SELECT * FROM cached_schedule_days WHERE ownerType = :ownerType AND ownerId = :ownerId AND date BETWEEN :start AND :end")

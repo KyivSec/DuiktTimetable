@@ -16,6 +16,9 @@ import com.kyivsec.duikt_timetable.model.TeacherInfo
 import com.kyivsec.duikt_timetable.model.TimetableOwner
 import com.kyivsec.duikt_timetable.model.StudentInfo
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 private val Context.scheduleDataStore by preferencesDataStore(name = "schedule_preferences")
 
@@ -42,6 +45,7 @@ data class StoredPreferences(
 
 interface SettingsRepository {
     suspend fun load(): StoredPreferences
+    fun observe(): Flow<StoredPreferences> = flow { emit(load()) }
     suspend fun saveSettings(settings: ScheduleSettings)
     suspend fun saveSelectedGroup(group: GroupInfo)
     suspend fun saveSelectedTeacher(teacher: TeacherInfo) = Unit
@@ -59,8 +63,12 @@ interface SettingsRepository {
 }
 
 class PreferencesRepository(private val context: Context) : SettingsRepository {
-    override suspend fun load(): StoredPreferences {
-        val values = context.scheduleDataStore.data.first()
+    override suspend fun load(): StoredPreferences = context.scheduleDataStore.data.first().toStoredPreferences()
+
+    override fun observe(): Flow<StoredPreferences> = context.scheduleDataStore.data.map { it.toStoredPreferences() }
+
+    private fun androidx.datastore.preferences.core.Preferences.toStoredPreferences(): StoredPreferences {
+        val values = this
         val storedOccupation = values[Keys.occupation]?.let { runCatching { Occupation.valueOf(it) }.getOrNull() }
             ?: if (values[Keys.groupId] != null) Occupation.GROUP else null
         return StoredPreferences(
@@ -68,6 +76,8 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
                 themeMode = values[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
                 startupMode = values[Keys.startupMode]?.let { runCatching { ScheduleMode.valueOf(it) }.getOrNull() } ?: ScheduleMode.DAY,
                 hideClassesInWeekView = values[Keys.hideClassesInWeekView] ?: false,
+                immediateNotificationsEnabled = values[Keys.immediateNotifications] ?: false,
+                persistentNotificationEnabled = values[Keys.persistentNotification] ?: false,
                 fastUpdate = values[Keys.fastUpdate] ?: false,
                 previousDaysToKeep = values[Keys.previousDays] ?: 14,
                 previousWeeksToKeep = values[Keys.previousWeeks] ?: 4,
@@ -96,6 +106,8 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         it[Keys.theme] = settings.themeMode.name
         it[Keys.startupMode] = settings.startupMode.name
         it[Keys.hideClassesInWeekView] = settings.hideClassesInWeekView
+        it[Keys.immediateNotifications] = settings.immediateNotificationsEnabled
+        it[Keys.persistentNotification] = settings.persistentNotificationEnabled
         it[Keys.fastUpdate] = settings.fastUpdate
         it[Keys.previousDays] = settings.previousDaysToKeep
         it[Keys.previousWeeks] = settings.previousWeeksToKeep
@@ -129,6 +141,8 @@ class PreferencesRepository(private val context: Context) : SettingsRepository {
         val theme = stringPreferencesKey("theme")
         val startupMode = stringPreferencesKey("startup_mode")
         val hideClassesInWeekView = booleanPreferencesKey("hide_classes_in_week_view")
+        val immediateNotifications = booleanPreferencesKey("immediate_notifications")
+        val persistentNotification = booleanPreferencesKey("persistent_notification")
         val fastUpdate = booleanPreferencesKey("fast_update")
         val previousDays = intPreferencesKey("previous_days")
         val previousWeeks = intPreferencesKey("previous_weeks")

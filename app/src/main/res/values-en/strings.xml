@@ -52,6 +52,11 @@
     <string name="startup_screen">Startup screen</string>
     <string name="previous_days">Previous days</string>
     <string name="previous_weeks">Previous weeks</string>
+    <string name="notifications">Notifications</string>
+    <string name="immediate_notifications">Class reminders</string>
+    <string name="immediate_notifications_description">Notify 5 minutes before a class begins</string>
+    <string name="persistent_notification">Live timetable</string>
+    <string name="persistent_notification_description">Show the current or next class with a countdown up to 59:59</string>
     <string name="data">Data</string>
     <string name="fast_update">Fast update</string>
     <string name="reload_all">Refresh entire timetable</string>
@@ -59,6 +64,20 @@
     <string name="last_full_refresh">Last full refresh: %1$s</string>
     <string name="never_fully_refreshed">A full refresh has not been run yet</string>
     <string name="privacy_policy">Privacy policy</string>
+
+    <string name="notification_channel_reminders">Class reminders</string>
+    <string name="notification_channel_reminders_description">Notifications 5 minutes before classes begin</string>
+    <string name="notification_channel_live">Live timetable</string>
+    <string name="notification_channel_live_description">Current or next class with a live countdown</string>
+    <string name="notification_reminder_title">Class starting soon</string>
+    <string name="notification_reminder_room">%1$s will begin in room %2$s in 5 minutes</string>
+    <string name="notification_reminder">%1$s will begin in 5 minutes</string>
+    <string name="notification_current_class">Now: %1$s</string>
+    <string name="notification_next_class">Next: %1$s</string>
+    <string name="notification_online">Online</string>
+    <string name="notification_room_unavailable">Room not specified</string>
+    <string name="notification_permission_required">Notification permission is required for this feature</string>
+    <string name="exact_alarm_permission_required">Allow exact reminders in system settings</string>
 
     <string name="institute">Institute</string>
     <string name="course">Year</string>

@@ -54,6 +54,11 @@
     <string name="startup_screen">Початковий екран</string>
     <string name="previous_days">Попередніх днів</string>
     <string name="previous_weeks">Попередніх тижнів</string>
+    <string name="notifications">Сповіщення</string>
+    <string name="immediate_notifications">Нагадування про пару</string>
+    <string name="immediate_notifications_description">Сповіщати за 5 хвилин до початку пари</string>
+    <string name="persistent_notification">Поточний розклад</string>
+    <string name="persistent_notification_description">Показувати поточну або наступну пару з відліком до 59:59</string>
     <string name="data">Дані</string>
     <string name="fast_update">Швидке оновлення</string>
     <string name="reload_all">Оновити весь розклад</string>
@@ -61,6 +66,20 @@
     <string name="last_full_refresh">Останнє повне оновлення: %1$s</string>
     <string name="never_fully_refreshed">Повне оновлення ще не виконувалося</string>
     <string name="privacy_policy">Політика конфіденційності</string>
+
+    <string name="notification_channel_reminders">Нагадування про пари</string>
+    <string name="notification_channel_reminders_description">Сповіщення за 5 хвилин до початку пари</string>
+    <string name="notification_channel_live">Поточний розклад</string>
+    <string name="notification_channel_live_description">Поточна або наступна пара з відліком часу</string>
+    <string name="notification_reminder_title">Пара незабаром</string>
+    <string name="notification_reminder_room">%1$s розпочнеться в аудиторії %2$s через 5 хвилин</string>
+    <string name="notification_reminder">%1$s розпочнеться через 5 хвилин</string>
+    <string name="notification_current_class">Зараз: %1$s</string>
+    <string name="notification_next_class">Далі: %1$s</string>
+    <string name="notification_online">Онлайн</string>
+    <string name="notification_room_unavailable">Аудиторію не вказано</string>
+    <string name="notification_permission_required">Дозвіл на сповіщення потрібен для цієї функції</string>
+    <string name="exact_alarm_permission_required">Дозвольте точні нагадування в системних налаштуваннях</string>
 
     <string name="institute">Інститут</string>
     <string name="course">Курс</string>

@@ -60,6 +60,8 @@ fun SettingsDrawer(
     selectedLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onHideClassesInWeekViewChange: (Boolean) -> Unit,
+    onImmediateNotificationsChange: (Boolean) -> Unit,
+    onPersistentNotificationChange: (Boolean) -> Unit,
     onFastUpdateChange: (Boolean) -> Unit,
     onPreviousDaysChange: (Int) -> Unit, onPreviousWeeksChange: (Int) -> Unit, onFullReload: () -> Unit,
     onChangeOccupation: () -> Unit,
@@ -117,6 +119,30 @@ fun SettingsDrawer(
                 CheckboxChoice(stringResource(R.string.hide_classes_in_week_view), settings.hideClassesInWeekView, onHideClassesInWeekViewChange)
                 IntegerSlider(stringResource(R.string.previous_days), settings.previousDaysToKeep, 0..30, onPreviousDaysChange)
                 IntegerSlider(stringResource(R.string.previous_weeks), settings.previousWeeksToKeep, 0..12, onPreviousWeeksChange)
+                Spacer(Modifier.height(28.dp))
+                SectionTitle(stringResource(R.string.notifications))
+                CheckboxChoice(
+                    stringResource(R.string.immediate_notifications),
+                    settings.immediateNotificationsEnabled,
+                    onImmediateNotificationsChange,
+                )
+                Text(
+                    stringResource(R.string.immediate_notifications_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 48.dp, bottom = 8.dp),
+                )
+                CheckboxChoice(
+                    stringResource(R.string.persistent_notification),
+                    settings.persistentNotificationEnabled,
+                    onPersistentNotificationChange,
+                )
+                Text(
+                    stringResource(R.string.persistent_notification_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 48.dp),
+                )
                 Spacer(Modifier.height(28.dp))
                 SectionTitle(stringResource(R.string.data))
                 CheckboxChoice(stringResource(R.string.fast_update), settings.fastUpdate, onFastUpdateChange)

@@ -69,7 +69,12 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 @Composable
-fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
+fun ScheduleScreen(
+    state: ScheduleUiState,
+    viewModel: ScheduleViewModel,
+    onImmediateNotificationsChange: (Boolean) -> Unit = viewModel::updateImmediateNotifications,
+    onPersistentNotificationChange: (Boolean) -> Unit = viewModel::updatePersistentNotification,
+) {
     val context = LocalContext.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -118,6 +123,8 @@ fun ScheduleScreen(state: ScheduleUiState, viewModel: ScheduleViewModel) {
                 onThemeChange = viewModel::updateTheme,
                 onStartupModeChange = viewModel::updateStartupMode,
                 onHideClassesInWeekViewChange = viewModel::updateHideClassesInWeekView,
+                onImmediateNotificationsChange = onImmediateNotificationsChange,
+                onPersistentNotificationChange = onPersistentNotificationChange,
                 onFastUpdateChange = viewModel::updateFastUpdate,
                 onPreviousDaysChange = viewModel::updatePreviousDays,
                 onPreviousWeeksChange = viewModel::updatePreviousWeeks,
