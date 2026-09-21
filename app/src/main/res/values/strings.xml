@@ -43,6 +43,8 @@
     <string name="theme_system">Системна</string>
     <string name="theme_light">Світла</string>
     <string name="theme_dark">Темна</string>
+    <string name="theme_high_contrast_light">Висококонтрастна світла</string>
+    <string name="theme_high_contrast_dark">Висококонтрастна темна</string>
     <string name="theme_oled">OLED</string>
     <string name="language">Мова</string>
     <string name="language_system">Системна за замовчуванням</string>

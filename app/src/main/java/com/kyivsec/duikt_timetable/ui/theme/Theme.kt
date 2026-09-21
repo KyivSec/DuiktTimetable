@@ -56,12 +56,46 @@ private val LightColors = lightColorScheme(
     inverseOnSurface = Color(0xFFF2F2F2), inversePrimary = BluePrimaryDark,
 )
 
+internal val HighContrastLightColors = lightColorScheme(
+    primary = Color.Black, onPrimary = Color.White, primaryContainer = Color.White,
+    onPrimaryContainer = Color.Black, background = Color.White, onBackground = Color.Black,
+    secondary = Color.Black, onSecondary = Color.White, secondaryContainer = Color(0xFFE8E8E8),
+    onSecondaryContainer = Color.Black, tertiary = InteractionAccent, onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFDCE7FA), onTertiaryContainer = Color(0xFF081A33),
+    surface = Color.White, onSurface = Color.Black, surfaceVariant = Color.White,
+    onSurfaceVariant = Color(0xFF333333), outline = Color.Black, outlineVariant = Color(0xFF737373),
+    error = Color(0xFFB00020), onError = Color.White, errorContainer = Color.White,
+    onErrorContainer = Color(0xFFB00020), surfaceDim = Color(0xFFE8E8E8), surfaceBright = Color.White,
+    surfaceContainerLowest = Color.White, surfaceContainerLow = Color.White,
+    surfaceContainer = Color.White, surfaceContainerHigh = Color(0xFFF2F2F2),
+    surfaceContainerHighest = Color(0xFFE8E8E8), inverseSurface = Color.Black,
+    inverseOnSurface = Color.White, inversePrimary = Color.White,
+)
+
+internal val HighContrastDarkColors = darkColorScheme(
+    primary = Color.White, onPrimary = Color.Black, primaryContainer = Color.Black,
+    onPrimaryContainer = Color.White, background = Color.Black, onBackground = Color.White,
+    secondary = Color.White, onSecondary = Color.Black, secondaryContainer = Color(0xFF1F1F1F),
+    onSecondaryContainer = Color.White, tertiary = InteractionAccentDark, onTertiary = Color(0xFF081A33),
+    tertiaryContainer = Color(0xFF102A52), onTertiaryContainer = Color.White,
+    surface = Color.Black, onSurface = Color.White, surfaceVariant = Color.Black,
+    onSurfaceVariant = Color(0xFFE0E0E0), outline = Color.White, outlineVariant = Color(0xFF8A8A8A),
+    error = Color(0xFFFFB4AB), onError = Color.Black, errorContainer = Color.Black,
+    onErrorContainer = Color(0xFFFFB4AB), surfaceDim = Color.Black, surfaceBright = Color(0xFF1F1F1F),
+    surfaceContainerLowest = Color.Black, surfaceContainerLow = Color.Black,
+    surfaceContainer = Color.Black, surfaceContainerHigh = Color(0xFF121212),
+    surfaceContainerHighest = Color(0xFF1F1F1F), inverseSurface = Color.White,
+    inverseOnSurface = Color.Black, inversePrimary = Color.Black,
+)
+
 @Composable
 fun DuiktTimetableTheme(themeMode: ThemeMode = ThemeMode.SYSTEM, content: @Composable () -> Unit) {
     val colors = when (themeMode) {
         ThemeMode.SYSTEM -> if (isSystemInDarkTheme()) DarkColors else LightColors
         ThemeMode.LIGHT -> LightColors
         ThemeMode.DARK -> DarkColors
+        ThemeMode.HIGH_CONTRAST_LIGHT -> HighContrastLightColors
+        ThemeMode.HIGH_CONTRAST_DARK -> HighContrastDarkColors
         ThemeMode.OLED -> OledColors
     }
     MaterialTheme(colorScheme = colors, typography = Typography, content = content)

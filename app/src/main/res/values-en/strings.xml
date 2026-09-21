@@ -41,6 +41,8 @@
     <string name="theme_system">System default</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="theme_high_contrast_light">High Contrast Light</string>
+    <string name="theme_high_contrast_dark">High Contrast Dark</string>
     <string name="theme_oled">OLED</string>
     <string name="language">Language</string>
     <string name="language_system">System Default</string>

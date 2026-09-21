@@ -79,6 +79,8 @@ fun SettingsDrawer(
             ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
             ThemeMode.LIGHT -> stringResource(R.string.theme_light)
             ThemeMode.DARK -> stringResource(R.string.theme_dark)
+            ThemeMode.HIGH_CONTRAST_LIGHT -> stringResource(R.string.theme_high_contrast_light)
+            ThemeMode.HIGH_CONTRAST_DARK -> stringResource(R.string.theme_high_contrast_dark)
             ThemeMode.OLED -> stringResource(R.string.theme_oled)
         }
     }

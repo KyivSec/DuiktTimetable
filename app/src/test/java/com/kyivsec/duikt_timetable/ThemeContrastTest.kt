@@ -6,6 +6,8 @@ import com.kyivsec.duikt_timetable.ui.theme.DarkBackground
 import com.kyivsec.duikt_timetable.ui.theme.DarkOutline
 import com.kyivsec.duikt_timetable.ui.theme.DarkSurfaceHigh
 import com.kyivsec.duikt_timetable.ui.theme.ExamAccentLightForeground
+import com.kyivsec.duikt_timetable.ui.theme.HighContrastDarkColors
+import com.kyivsec.duikt_timetable.ui.theme.HighContrastLightColors
 import com.kyivsec.duikt_timetable.ui.theme.LabAccentLightForeground
 import com.kyivsec.duikt_timetable.ui.theme.LectureAccentLightForeground
 import com.kyivsec.duikt_timetable.ui.theme.LightBackground
@@ -29,6 +31,26 @@ class ThemeContrastTest {
         assertContrastAtLeast(LightOutline, LightSurfaceHigh, 3f)
         assertContrastAtLeast(DarkOutline, DarkBackground, 3f)
         assertContrastAtLeast(DarkOutline, DarkSurfaceHigh, 3f)
+    }
+
+    @Test fun `high contrast themes use pure backgrounds and maximum content contrast`() {
+        assertContrastAtLeast(HighContrastLightColors.onBackground, HighContrastLightColors.background, 20.9f)
+        assertContrastAtLeast(HighContrastDarkColors.onBackground, HighContrastDarkColors.background, 20.9f)
+        assertTrue(HighContrastLightColors.background == Color.White)
+        assertTrue(HighContrastDarkColors.background == Color.Black)
+    }
+
+    @Test fun `high contrast secondary content remains accessible`() {
+        assertContrastAtLeast(
+            HighContrastLightColors.onSurfaceVariant,
+            HighContrastLightColors.surface,
+            4.5f,
+        )
+        assertContrastAtLeast(
+            HighContrastDarkColors.onSurfaceVariant,
+            HighContrastDarkColors.surface,
+            4.5f,
+        )
     }
 
     private fun assertContrastAtLeast(foreground: Color, background: Color, minimum: Float) {

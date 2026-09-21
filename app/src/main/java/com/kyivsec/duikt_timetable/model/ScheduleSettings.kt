@@ -3,7 +3,7 @@ package com.kyivsec.duikt_timetable.model
 import androidx.compose.runtime.Immutable
 
 enum class ScheduleMode { DAY, WEEK }
-enum class ThemeMode { SYSTEM, LIGHT, DARK, OLED }
+enum class ThemeMode { SYSTEM, LIGHT, DARK, HIGH_CONTRAST_LIGHT, HIGH_CONTRAST_DARK, OLED }
 
 @Immutable
 data class ScheduleSettings(
