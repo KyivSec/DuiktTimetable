@@ -127,7 +127,8 @@ fun <T> DropdownSelector(
                     )
                 } else {
                     LazyColumn(
-                        Modifier.fillMaxWidth().heightIn(max = maxOptionsHeight).padding(top = 8.dp).selectableGroup(),
+                        Modifier.fillMaxWidth().heightIn(max = maxOptionsHeight).padding(top = 8.dp)
+                            .testTag("dropdownOptions").selectableGroup(),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         items(filteredOptions) { option ->

@@ -90,7 +90,9 @@ class ScheduleScreenInteractionTest {
         composeRule.onNodeWithContentDescription(context.getString(R.string.open_settings)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.settings)).assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.theme)).performClick()
-        composeRule.onNodeWithTag("dropdownOption:${context.getString(R.string.theme_oled)}").performClick()
+        val oledOptionTag = "dropdownOption:${context.getString(R.string.theme_oled)}"
+        composeRule.onNodeWithTag("dropdownOptions").performScrollToNode(hasTestTag(oledOptionTag))
+        composeRule.onNodeWithTag(oledOptionTag).performClick()
         composeRule.waitUntil(5_000) { viewModel.uiState.value.settings.themeMode == ThemeMode.OLED }
         composeRule.onNodeWithText(context.getString(R.string.reload_all)).performScrollTo().performClick()
         composeRule.onNodeWithText(context.getString(R.string.reload_in_progress)).assertIsDisplayed()
