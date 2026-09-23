@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -75,14 +77,25 @@ class NotificationPublisher(private val applicationContext: Context) {
         }
         val location = lesson.room?.takeIf(String::isNotBlank)?.let { context.getString(R.string.room_short, it) }
             ?: context.getString(if (lesson.onlineUrl != null) R.string.notification_online else R.string.notification_room_unavailable)
+        val contentView = RemoteViews(context.packageName, R.layout.notification_live).apply {
+            setTextViewText(R.id.notification_lesson, title)
+            setTextViewText(R.id.notification_location, location)
+            setChronometer(
+                R.id.notification_countdown,
+                SystemClock.elapsedRealtime() + state.countdownTarget.toEpochMilli() - System.currentTimeMillis(),
+                null,
+                true,
+            )
+            setChronometerCountDown(R.id.notification_countdown, true)
+        }
         return NotificationCompat.Builder(context, LIVE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(location)
-            .setWhen(state.countdownTarget.toEpochMilli())
-            .setShowWhen(true)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
+            .setShowWhen(false)
+            .setCustomContentView(contentView)
+            .setCustomBigContentView(contentView)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setContentIntent(contentIntent())
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setPriority(NotificationCompat.PRIORITY_LOW)

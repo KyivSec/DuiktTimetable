@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="notification_content_text">#FFFFFFFF</color>
+    <color name="notification_secondary_text">#B3FFFFFF</color>
+    <color name="notification_timer_background">#24FFFFFF</color>
+</resources>

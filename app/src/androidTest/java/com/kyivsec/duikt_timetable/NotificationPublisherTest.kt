@@ -1,7 +1,10 @@
 package com.kyivsec.duikt_timetable
 
 import android.app.Notification
-import androidx.core.app.NotificationCompat
+import android.os.SystemClock
+import android.widget.Chronometer
+import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kyivsec.duikt_timetable.model.Lesson
@@ -9,8 +12,8 @@ import com.kyivsec.duikt_timetable.model.LessonType
 import com.kyivsec.duikt_timetable.notification.LiveNotificationState
 import com.kyivsec.duikt_timetable.notification.NotificationPublisher
 import com.kyivsec.duikt_timetable.notification.ScheduledLesson
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,9 +23,9 @@ import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
 class NotificationPublisherTest {
-    @Test fun liveNotificationUsesSystemTemplateWithVisibleLessonDetails() {
+    @Test fun liveNotificationUsesCustomCountdownWithVisibleLessonDetails() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val target = Instant.parse("2026-09-21T10:50:00Z")
+        val target = Instant.now().plusSeconds(20 * 60L)
         val occurrence = ScheduledLesson(
             LocalDate.of(2026, 9, 21),
             Lesson(
@@ -39,12 +42,19 @@ class NotificationPublisherTest {
             LiveNotificationState.Current(occurrence, target),
         )
 
-        assertNull(notification.contentView)
-        assertNull(notification.bigContentView)
+        val contentView = notification.contentView
+        assertNotNull(contentView)
+        assertNotNull(notification.bigContentView)
+        val inflated = contentView.apply(context, FrameLayout(context))
+        val countdown = inflated.findViewById<Chronometer>(R.id.notification_countdown)
+
+        assertTrue(inflated.findViewById<TextView>(R.id.notification_lesson).text.toString().contains("Algorithms"))
+        assertTrue(inflated.findViewById<TextView>(R.id.notification_location).text.toString().contains("301"))
+        assertTrue(countdown.isCountDown)
+        val expectedBase = SystemClock.elapsedRealtime() + target.toEpochMilli() - System.currentTimeMillis()
+        assertTrue(kotlin.math.abs(countdown.base - expectedBase) < 1_000L)
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString().contains("Algorithms"))
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("301"))
-        assertTrue(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
-        assertTrue(notification.extras.getBoolean(NotificationCompat.EXTRA_CHRONOMETER_COUNT_DOWN))
-        assertEquals(target.toEpochMilli(), notification.`when`)
+        assertFalse(notification.extras.getBoolean(Notification.EXTRA_SHOW_WHEN))
     }
 }

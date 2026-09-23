@@ -58,7 +58,7 @@
     <string name="immediate_notifications">Нагадування про пару</string>
     <string name="immediate_notifications_description">Сповіщати за 5 хвилин до початку пари</string>
     <string name="persistent_notification">Поточний розклад</string>
-    <string name="persistent_notification_description">Показувати поточну або наступну пару з відліком до 59:59</string>
+    <string name="persistent_notification_description">Показувати поточну або наступну пару з відліком до 99:59</string>
     <string name="data">Дані</string>
     <string name="fast_update">Швидке оновлення</string>
     <string name="reload_all">Оновити весь розклад</string>
