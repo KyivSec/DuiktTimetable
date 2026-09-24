@@ -14,6 +14,7 @@ import com.kyivsec.duikt_timetable.notification.NotificationPublisher
 import com.kyivsec.duikt_timetable.notification.ScheduledLesson
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,11 +44,17 @@ class NotificationPublisherTest {
         )
 
         val contentView = notification.contentView
+        val bigContentView = notification.bigContentView
         assertNotNull(contentView)
-        assertNotNull(notification.bigContentView)
+        assertNotNull(bigContentView)
+        assertNull(notification.largeIcon)
+        assertNull(notification.extras.getString(Notification.EXTRA_TEMPLATE))
         val inflated = contentView.apply(context, FrameLayout(context))
+        val inflatedBig = bigContentView.apply(context, FrameLayout(context))
         val countdown = inflated.findViewById<Chronometer>(R.id.notification_countdown)
 
+        assertTrue(inflated.findViewById<TextView>(R.id.notification_lesson).maxLines == 1)
+        assertTrue(inflatedBig.findViewById<TextView>(R.id.notification_lesson).maxLines == 2)
         assertTrue(inflated.findViewById<TextView>(R.id.notification_lesson).text.toString().contains("Algorithms"))
         assertTrue(inflated.findViewById<TextView>(R.id.notification_location).text.toString().contains("301"))
         assertTrue(countdown.isCountDown)

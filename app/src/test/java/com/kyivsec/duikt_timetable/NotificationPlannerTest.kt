@@ -26,14 +26,14 @@ class NotificationPlannerTest {
         assertEquals(lesson, plan.reminder)
     }
 
-    @Test fun liveNotificationShowsNextClassOnlyInsideHundredMinutes() {
+    @Test fun liveNotificationShowsNextClassUpToTwoHoursAhead() {
         val lesson = occurrence("Math", 10, 0, 11, 20)
 
-        val early = planner.plan(Instant.parse("2026-09-21T08:20:00Z"), listOf(lesson), false, true)
-        val visible = planner.plan(Instant.parse("2026-09-21T08:20:01Z"), listOf(lesson), false, true)
+        val early = planner.plan(Instant.parse("2026-09-21T07:59:59Z"), listOf(lesson), false, true)
+        val visible = planner.plan(Instant.parse("2026-09-21T08:00:00Z"), listOf(lesson), false, true)
 
         assertNull(early.live)
-        assertEquals(Instant.parse("2026-09-21T08:20:01Z"), early.nextEvaluationAt)
+        assertEquals(Instant.parse("2026-09-21T08:00:00Z"), early.nextEvaluationAt)
         assertTrue(visible.live is LiveNotificationState.Next)
         assertEquals(Instant.parse("2026-09-21T10:00:00Z"), visible.live?.countdownTarget)
     }
@@ -56,17 +56,17 @@ class NotificationPlannerTest {
         val plan = planner.plan(Instant.parse("2026-09-21T18:00:00Z"), listOf(tomorrow), false, true)
 
         assertNull(plan.live)
-        assertEquals(Instant.parse("2026-09-22T07:20:01Z"), plan.nextEvaluationAt)
+        assertEquals(Instant.parse("2026-09-22T07:00:00Z"), plan.nextEvaluationAt)
     }
 
-    @Test fun gapLongerThanHundredMinutesTemporarilyRemovesLiveNotification() {
+    @Test fun gapLongerThanTwoHoursTemporarilyRemovesLiveNotification() {
         val first = occurrence("Math", 9, 0, 10, 0)
-        val second = occurrence("Physics", 12, 0, 13, 0)
+        val second = occurrence("Physics", 12, 1, 13, 0)
 
         val plan = planner.plan(Instant.parse("2026-09-21T10:00:00Z"), listOf(first, second), false, true)
 
         assertNull(plan.live)
-        assertEquals(Instant.parse("2026-09-21T10:20:01Z"), plan.nextEvaluationAt)
+        assertEquals(Instant.parse("2026-09-21T10:01:00Z"), plan.nextEvaluationAt)
     }
 
     @Test fun activeEightyMinuteClassIsShownImmediately() {

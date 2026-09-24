@@ -77,25 +77,23 @@ class NotificationPublisher(private val applicationContext: Context) {
         }
         val location = lesson.room?.takeIf(String::isNotBlank)?.let { context.getString(R.string.room_short, it) }
             ?: context.getString(if (lesson.onlineUrl != null) R.string.notification_online else R.string.notification_room_unavailable)
-        val contentView = RemoteViews(context.packageName, R.layout.notification_live).apply {
+        val countdownBase = SystemClock.elapsedRealtime() +
+            state.countdownTarget.toEpochMilli() - System.currentTimeMillis()
+        fun contentView(layoutId: Int) = RemoteViews(context.packageName, layoutId).apply {
             setTextViewText(R.id.notification_lesson, title)
             setTextViewText(R.id.notification_location, location)
-            setChronometer(
-                R.id.notification_countdown,
-                SystemClock.elapsedRealtime() + state.countdownTarget.toEpochMilli() - System.currentTimeMillis(),
-                null,
-                true,
-            )
+            setChronometer(R.id.notification_countdown, countdownBase, null, true)
             setChronometerCountDown(R.id.notification_countdown, true)
         }
+        val compactView = contentView(R.layout.notification_live)
+        val expandedView = contentView(R.layout.notification_live_expanded)
         return NotificationCompat.Builder(context, LIVE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(location)
             .setShowWhen(false)
-            .setCustomContentView(contentView)
-            .setCustomBigContentView(contentView)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(compactView)
+            .setCustomBigContentView(expandedView)
             .setContentIntent(contentIntent())
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setPriority(NotificationCompat.PRIORITY_LOW)

@@ -109,6 +109,6 @@ class NotificationPlanner(
     companion object {
         val REMINDER_LEAD_TIME: Duration = Duration.ofMinutes(5)
         val REMINDER_DELIVERY_WINDOW: Duration = Duration.ofMinutes(1)
-        val MAX_LIVE_COUNTDOWN: Duration = Duration.ofMinutes(99).plusSeconds(59)
+        val MAX_LIVE_COUNTDOWN: Duration = Duration.ofHours(2)
     }
 }
