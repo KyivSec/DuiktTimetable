@@ -117,7 +117,6 @@ fun ScheduleScreen(
             SettingsDrawer(
                 settings = state.settings,
                 isFullReloading = state.isFullReloading,
-                lastRefreshEpochMillis = state.lastFullRefreshEpochMillis,
                 selectedLanguage = LanguageHandler.selectedLanguage(context),
                 onLanguageChange = { language -> LanguageHandler.setLanguageAndRecreate(context, language) },
                 onThemeChange = viewModel::updateTheme,

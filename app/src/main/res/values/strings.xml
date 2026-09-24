@@ -63,8 +63,6 @@
     <string name="fast_update">Швидке оновлення</string>
     <string name="reload_all">Оновити весь розклад</string>
     <string name="reload_in_progress">Оновлення…</string>
-    <string name="last_full_refresh">Останнє повне оновлення: %1$s</string>
-    <string name="never_fully_refreshed">Повне оновлення ще не виконувалося</string>
     <string name="privacy_policy">Політика конфіденційності</string>
 
     <string name="notification_channel_reminders">Нагадування про пари</string>

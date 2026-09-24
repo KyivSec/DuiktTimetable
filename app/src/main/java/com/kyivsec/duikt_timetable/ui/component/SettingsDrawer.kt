@@ -41,7 +41,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.kyivsec.duikt_timetable.R
 import com.kyivsec.duikt_timetable.model.ScheduleSettings
@@ -49,14 +48,11 @@ import com.kyivsec.duikt_timetable.model.ScheduleMode
 import com.kyivsec.duikt_timetable.model.ThemeMode
 import com.kyivsec.duikt_timetable.util.AppLanguage
 import com.kyivsec.duikt_timetable.util.LanguageHandler
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Composable
 fun SettingsDrawer(
-    settings: ScheduleSettings, isFullReloading: Boolean, lastRefreshEpochMillis: Long?,
+    settings: ScheduleSettings, isFullReloading: Boolean,
     selectedLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
     onThemeChange: (ThemeMode) -> Unit, onStartupModeChange: (ScheduleMode) -> Unit,
     onHideClassesInWeekViewChange: (Boolean) -> Unit,
@@ -67,7 +63,6 @@ fun SettingsDrawer(
     onChangeOccupation: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
-    val locale = LocalConfiguration.current.locales[0]
     val languageOptions = LanguageHandler.availableLanguages.map { language ->
         language to when (language) {
             AppLanguage.SYSTEM -> stringResource(R.string.language_system)
@@ -159,14 +154,8 @@ fun SettingsDrawer(
                     Spacer(Modifier.width(8.dp))
                     Text(if (isFullReloading) stringResource(R.string.reload_in_progress) else stringResource(R.string.reload_all))
                 }
-                Text(
-                    lastRefreshEpochMillis?.let {
-                        val value = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                        stringResource(R.string.last_full_refresh, value.format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", locale)))
-                    } ?: stringResource(R.string.never_fully_refreshed),
-                    Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                androidx.compose.material3.TextButton(onClick = onChangeOccupation, modifier = Modifier.fillMaxWidth()) {
+                Spacer(Modifier.height(10.dp))
+                Button(onClick = onChangeOccupation, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.change_occupation))
                 }
                 Spacer(Modifier.height(24.dp))
