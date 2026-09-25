@@ -23,6 +23,7 @@ class NotificationPublisher(private val applicationContext: Context) {
     fun createChannels() {
         val context = LanguageHandler.wrapContext(applicationContext)
         val manager = applicationContext.getSystemService(NotificationManager::class.java)
+        manager.deleteNotificationChannel(LEGACY_LIVE_CHANNEL_ID)
         manager.createNotificationChannels(listOf(
             NotificationChannel(
                 REMINDER_CHANNEL_ID,
@@ -32,11 +33,12 @@ class NotificationPublisher(private val applicationContext: Context) {
             NotificationChannel(
                 LIVE_CHANNEL_ID,
                 context.getString(R.string.notification_channel_live),
-                NotificationManager.IMPORTANCE_LOW,
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = context.getString(R.string.notification_channel_live_description)
                 setSound(null, null)
                 enableVibration(false)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             },
         ))
     }
@@ -97,7 +99,8 @@ class NotificationPublisher(private val applicationContext: Context) {
             .setCustomBigContentView(expandedView)
             .setContentIntent(contentIntent())
             .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
@@ -130,7 +133,8 @@ class NotificationPublisher(private val applicationContext: Context) {
 
     companion object {
         const val REMINDER_CHANNEL_ID = "class_reminders"
-        const val LIVE_CHANNEL_ID = "live_timetable"
+        const val LIVE_CHANNEL_ID = "live_timetable_popup"
+        private const val LEGACY_LIVE_CHANNEL_ID = "live_timetable"
         private const val LIVE_NOTIFICATION_ID = 10_001
     }
 }

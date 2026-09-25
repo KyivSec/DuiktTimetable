@@ -1,6 +1,7 @@
 package com.kyivsec.duikt_timetable
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.os.SystemClock
 import android.widget.Chronometer
 import android.widget.FrameLayout
@@ -12,6 +13,7 @@ import com.kyivsec.duikt_timetable.model.LessonType
 import com.kyivsec.duikt_timetable.notification.LiveNotificationState
 import com.kyivsec.duikt_timetable.notification.NotificationPublisher
 import com.kyivsec.duikt_timetable.notification.ScheduledLesson
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -24,6 +26,17 @@ import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
 class NotificationPublisherTest {
+    @Test fun liveChannelIsHighImportanceAndSilent() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        NotificationPublisher(context).createChannels()
+
+        val channel = context.getSystemService(NotificationManager::class.java)
+            .getNotificationChannel(NotificationPublisher.LIVE_CHANNEL_ID)
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
+        assertNull(channel.sound)
+    }
+
     @Test fun liveNotificationUsesCustomCountdownWithVisibleLessonDetails() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val target = Instant.now().plusSeconds(20 * 60L)
@@ -63,6 +76,7 @@ class NotificationPublisherTest {
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString().contains("Algorithms"))
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("301"))
         assertFalse(notification.extras.getBoolean(Notification.EXTRA_SHOW_WHEN))
+        assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
         assertTrue(kotlin.math.abs(notification.timeoutAfter - 20 * 60_000L) < 1_000L)
     }
 }
