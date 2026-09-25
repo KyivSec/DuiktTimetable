@@ -76,6 +76,12 @@
     <string name="notification_room_unavailable">Room not specified</string>
     <string name="notification_permission_required">Notification permission is required for this feature</string>
     <string name="exact_alarm_permission_required">Allow exact reminders in system settings</string>
+    <string name="widget_description">Current or next class with a live countdown</string>
+    <string name="widget_name_compact">Timetable 2×2</string>
+    <string name="widget_current_class">Now</string>
+    <string name="widget_next_class">Next</string>
+    <string name="widget_no_class">No current or upcoming class</string>
+    <string name="widget_select_owner">Open the app and select a timetable</string>
 
     <string name="institute">Institute</string>
     <string name="course">Year</string>

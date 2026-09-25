@@ -13,6 +13,7 @@ import com.kyivsec.duikt_timetable.data.StoredPreferences
 import com.kyivsec.duikt_timetable.data.local.LessonEntity
 import com.kyivsec.duikt_timetable.data.local.TimetableDao
 import com.kyivsec.duikt_timetable.data.local.toDomain
+import com.kyivsec.duikt_timetable.widget.ScheduleWidgetPublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -34,6 +36,7 @@ class ScheduleNotificationCoordinator(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val publisher = NotificationPublisher(context)
+    private val widgetPublisher = ScheduleWidgetPublisher(context)
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val updateMutex = Mutex()
     private var observationJob: Job? = null
@@ -44,7 +47,7 @@ class ScheduleNotificationCoordinator(
         observationJob = scope.launch {
             settingsRepository.observe().collectLatest { preferences ->
                 val owner = preferences.notificationOwner()
-                if (!preferences.settings.notificationsEnabled || owner == null) {
+                if ((!preferences.settings.notificationsEnabled && !widgetPublisher.hasWidgets()) || owner == null) {
                     apply(preferences, emptyList())
                     return@collectLatest
                 }
@@ -57,7 +60,7 @@ class ScheduleNotificationCoordinator(
     suspend fun refreshNow() {
         val preferences = settingsRepository.load()
         val owner = preferences.notificationOwner()
-        val rows = if (owner != null && preferences.settings.notificationsEnabled) {
+        val rows = if (owner != null && (preferences.settings.notificationsEnabled || widgetPublisher.hasWidgets())) {
             dao.notificationLessons(owner.type, owner.id, LocalDate.now(clock).toString())
         } else emptyList()
         apply(preferences, rows)
@@ -66,35 +69,59 @@ class ScheduleNotificationCoordinator(
     private suspend fun apply(preferences: StoredPreferences, rows: List<LessonEntity>) = updateMutex.withLock {
         cancelAlarm()
         val settings = preferences.settings
-        if (!settings.notificationsEnabled || !canPostNotifications() || !canScheduleExactAlarms()) {
+        val canPost = canPostNotifications()
+        val widgetEnabled = widgetPublisher.hasWidgets()
+        if (!settings.notificationsEnabled || !canPost) {
             publisher.cancelAll()
-            return@withLock
         }
         val now = Instant.now(clock)
         val lessons = rows.map { ScheduledLesson(LocalDate.parse(it.date), it.toDomain()) }
+        val liveNotificationEnabled = settings.persistentNotificationEnabled && canPost
         val plan = NotificationPlanner(ZoneId.systemDefault()).plan(
             now = now,
             lessons = lessons,
-            remindersEnabled = settings.immediateNotificationsEnabled,
-            liveEnabled = settings.persistentNotificationEnabled,
+            remindersEnabled = settings.immediateNotificationsEnabled && canPost,
+            liveEnabled = liveNotificationEnabled || widgetEnabled,
         )
-        plan.reminder?.let { publisher.publishReminder(it, now) }
-        plan.live?.let(publisher::publishLive) ?: publisher.cancelLive()
+        if (canPost) plan.reminder?.let { publisher.publishReminder(it, now) }
+        if (liveNotificationEnabled) plan.live?.let(publisher::publishLive) ?: publisher.cancelLive()
+        else publisher.cancelLive()
+        widgetPublisher.publish(
+            state = plan.live,
+            themeMode = settings.themeMode,
+            ownerSelected = preferences.notificationOwner() != null,
+        )
         plan.nextEvaluationAt?.let(::scheduleAlarm)
     }
 
     private fun scheduleAlarm(at: Instant) {
         if (!at.isAfter(Instant.now(clock))) return
+        val scheduledExactly = canScheduleExactAlarms() && runCatching {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), alarmIntent(PRIMARY_ALARM))
+        }.isSuccess
+        if (!scheduledExactly) {
+            runCatching {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), alarmIntent(PRIMARY_ALARM))
+            }
+        }
+        val backupAt = at.plus(BACKUP_ALARM_DELAY)
         runCatching {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), alarmIntent())
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                backupAt.toEpochMilli(),
+                alarmIntent(BACKUP_ALARM),
+            )
         }
     }
 
-    private fun cancelAlarm() = alarmManager.cancel(alarmIntent())
+    private fun cancelAlarm() {
+        alarmManager.cancel(alarmIntent(PRIMARY_ALARM))
+        alarmManager.cancel(alarmIntent(BACKUP_ALARM))
+    }
 
-    private fun alarmIntent(): PendingIntent = PendingIntent.getBroadcast(
+    private fun alarmIntent(requestCode: Int): PendingIntent = PendingIntent.getBroadcast(
         context,
-        0,
+        requestCode,
         Intent(context, NotificationAlarmReceiver::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
@@ -115,4 +142,10 @@ class ScheduleNotificationCoordinator(
 
     private val com.kyivsec.duikt_timetable.model.ScheduleSettings.notificationsEnabled: Boolean
         get() = immediateNotificationsEnabled || persistentNotificationEnabled
+
+    private companion object {
+        const val PRIMARY_ALARM = 0
+        const val BACKUP_ALARM = 1
+        val BACKUP_ALARM_DELAY: Duration = Duration.ofMinutes(1)
+    }
 }

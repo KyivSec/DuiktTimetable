@@ -63,5 +63,6 @@ class NotificationPublisherTest {
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString().contains("Algorithms"))
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("301"))
         assertFalse(notification.extras.getBoolean(Notification.EXTRA_SHOW_WHEN))
+        assertTrue(kotlin.math.abs(notification.timeoutAfter - 20 * 60_000L) < 1_000L)
     }
 }

@@ -78,6 +78,12 @@
     <string name="notification_room_unavailable">Аудиторію не вказано</string>
     <string name="notification_permission_required">Дозвіл на сповіщення потрібен для цієї функції</string>
     <string name="exact_alarm_permission_required">Дозвольте точні нагадування в системних налаштуваннях</string>
+    <string name="widget_description">Поточна або наступна пара з відліком часу</string>
+    <string name="widget_name_compact">Розклад 2×2</string>
+    <string name="widget_current_class">Зараз</string>
+    <string name="widget_next_class">Далі</string>
+    <string name="widget_no_class">Немає поточної або найближчої пари</string>
+    <string name="widget_select_owner">Відкрийте застосунок і виберіть розклад</string>
 
     <string name="institute">Інститут</string>
     <string name="course">Курс</string>

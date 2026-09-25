@@ -3,7 +3,9 @@ package com.kyivsec.duikt_timetable.util
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.res.Configuration
+import com.kyivsec.duikt_timetable.notification.ACTION_REFRESH_SCHEDULE_SURFACES
 import java.util.Locale
 
 enum class AppLanguage(val tag: String?) {
@@ -24,6 +26,7 @@ object LanguageHandler {
     fun setLanguage(context: Context, language: AppLanguage) {
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .edit().putString(LANGUAGE_KEY, language.name).apply()
+        context.sendBroadcast(Intent(ACTION_REFRESH_SCHEDULE_SURFACES).setPackage(context.packageName))
     }
 
     fun setLanguageAndRecreate(context: Context, language: AppLanguage) {

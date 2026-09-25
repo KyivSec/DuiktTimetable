@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+const val ACTION_REFRESH_SCHEDULE_SURFACES = "com.kyivsec.duikt_timetable.action.REFRESH_SCHEDULE_SURFACES"
+
 class NotificationAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) = refresh(context)
 }
@@ -23,7 +25,9 @@ class NotificationRecoveryReceiver : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_CONFIGURATION_CHANGED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
+            ACTION_REFRESH_SCHEDULE_SURFACES,
             "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
         )
     }

@@ -79,6 +79,7 @@ class NotificationPublisher(private val applicationContext: Context) {
             ?: context.getString(if (lesson.onlineUrl != null) R.string.notification_online else R.string.notification_room_unavailable)
         val countdownBase = SystemClock.elapsedRealtime() +
             state.countdownTarget.toEpochMilli() - System.currentTimeMillis()
+        val timeout = (state.countdownTarget.toEpochMilli() - System.currentTimeMillis()).coerceAtLeast(1L)
         fun contentView(layoutId: Int) = RemoteViews(context.packageName, layoutId).apply {
             setTextViewText(R.id.notification_lesson, title)
             setTextViewText(R.id.notification_location, location)
@@ -100,6 +101,7 @@ class NotificationPublisher(private val applicationContext: Context) {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
+            .setTimeoutAfter(timeout)
             .build()
     }
 
