@@ -35,6 +35,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.flow.Flow
@@ -49,7 +50,9 @@ import org.junit.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,6 +62,71 @@ class ScheduleViewModelTest {
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
+
+    @Test fun `time refreshes immediately when opened and reopened`() = runTest(dispatcher) {
+        val clock = MutableClock()
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        runCurrent()
+
+        clock.value = Instant.parse("2026-08-28T12:00:00Z")
+        viewModel.startTimeUpdates()
+        assertEquals(LocalDateTime.of(2026, 8, 28, 12, 0), viewModel.currentTime.value)
+
+        viewModel.stopTimeUpdates()
+        clock.value = Instant.parse("2026-08-28T09:00:00Z")
+        viewModel.startTimeUpdates()
+        assertEquals(LocalDateTime.of(2026, 8, 28, 9, 0), viewModel.currentTime.value)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `time is checked every five seconds only while active`() = runTest(dispatcher) {
+        val clock = MutableClock()
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        viewModel.startTimeUpdates()
+        runCurrent()
+        val initialTime = viewModel.currentTime.value
+
+        clock.value = clock.value.plusSeconds(60)
+        advanceTimeBy(4_999)
+        runCurrent()
+        assertEquals(initialTime, viewModel.currentTime.value)
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(initialTime.plusMinutes(1), viewModel.currentTime.value)
+
+        clock.value = clock.value.minusSeconds(120)
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(initialTime.minusMinutes(1), viewModel.currentTime.value)
+
+        viewModel.stopTimeUpdates()
+        clock.value = clock.value.plusSeconds(600)
+        advanceTimeBy(10_000)
+        runCurrent()
+        assertEquals(initialTime.minusMinutes(1), viewModel.currentTime.value)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test fun `unchanged clock retains the current time value`() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        val viewModel = ScheduleViewModel(repository, repository, FakeSettingsRepository(), clock, dispatcher)
+        viewModel.startTimeUpdates()
+        runCurrent()
+        val initialTime = viewModel.currentTime.value
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertTrue(initialTime === viewModel.currentTime.value)
+        viewModel.viewModelScope.cancel()
+    }
+
+    private class MutableClock : Clock() {
+        var value: Instant = Instant.parse("2026-08-28T10:00:00Z")
+        override fun instant(): Instant = value
+        override fun getZone(): ZoneId = ZoneOffset.UTC
+        override fun withZone(zone: ZoneId): Clock = Clock.fixed(value, zone)
+    }
 
     @Test fun `initial state selects today and preferred group`() = runTest(dispatcher) {
         val repository = FakeScheduleRepository()

@@ -70,6 +70,7 @@ class ScheduleViewModel(
 
     private var allDays: List<ScheduleDay> = emptyList()
     private var scheduleJob: Job? = null
+    private var timeUpdateJob: Job? = null
     private val syncCoordinator = ScheduleSyncCoordinator(viewModelScope)
     private var directoryRefreshJob: Job? = null
     private var loadJob: Job? = null
@@ -86,12 +87,24 @@ class ScheduleViewModel(
 
     init {
         load()
-        viewModelScope.launch(Dispatchers.Default) {
+    }
+
+    fun startTimeUpdates() {
+        // Refresh synchronously on resume instead of displaying the old value
+        // until the next periodic check. StateFlow suppresses unchanged values.
+        _currentTime.value = now()
+        if (timeUpdateJob?.isActive == true) return
+        timeUpdateJob = viewModelScope.launch {
             while (true) {
-                delay(30_000)
+                delay(5_000)
                 _currentTime.value = now()
             }
         }
+    }
+
+    fun stopTimeUpdates() {
+        timeUpdateJob?.cancel()
+        timeUpdateJob = null
     }
 
     fun retry() = load()

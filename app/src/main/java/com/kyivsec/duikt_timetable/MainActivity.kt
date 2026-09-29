@@ -77,6 +77,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        scheduleViewModel.startTimeUpdates()
+    }
+
+    override fun onPause() {
+        scheduleViewModel.stopTimeUpdates()
+        super.onPause()
+    }
+
     private fun updateNotificationSetting(setting: NotificationSetting, enabled: Boolean) {
         if (!enabled) {
             when (setting) {
