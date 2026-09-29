@@ -77,6 +77,7 @@ class NotificationPublisherTest {
         assertTrue(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("301"))
         assertFalse(notification.extras.getBoolean(Notification.EXTRA_SHOW_WHEN))
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
-        assertTrue(kotlin.math.abs(notification.timeoutAfter - 20 * 60_000L) < 1_000L)
+        assertEquals(0L, notification.timeoutAfter)
+        assertTrue(notification.flags and Notification.FLAG_ONGOING_EVENT != 0)
     }
 }

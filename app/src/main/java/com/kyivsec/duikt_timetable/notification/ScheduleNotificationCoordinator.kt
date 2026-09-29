@@ -71,6 +71,10 @@ class ScheduleNotificationCoordinator(
         val settings = preferences.settings
         val canPost = canPostNotifications()
         val widgetEnabled = widgetPublisher.hasWidgets()
+        NotificationScheduleCheckWorker.setEnabled(
+            context,
+            settings.persistentNotificationEnabled && canPost && preferences.notificationOwner() != null,
+        )
         if (!settings.notificationsEnabled || !canPost) {
             publisher.cancelAll()
         }

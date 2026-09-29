@@ -59,6 +59,38 @@ class NotificationPlannerTest {
         assertEquals(Instant.parse("2026-09-22T07:00:00Z"), plan.nextEvaluationAt)
     }
 
+    @Test fun delayedBackgroundCheckShowsNextClassAfterPreviousClassEnds() {
+        val first = occurrence("Math", 9, 0, 10, 20)
+        val second = occurrence("Physics", 10, 30, 11, 50)
+
+        val plan = planner.plan(Instant.parse("2026-09-21T10:23:00Z"), listOf(first, second), false, true)
+
+        assertTrue(plan.live is LiveNotificationState.Next)
+        assertEquals(second, plan.live?.occurrence)
+        assertEquals(Instant.parse("2026-09-21T10:30:00Z"), plan.nextEvaluationAt)
+    }
+
+    @Test fun delayedBackgroundCheckShowsCurrentClassWhenItsStartAlarmWasMissed() {
+        val first = occurrence("Math", 9, 0, 10, 20)
+        val second = occurrence("Physics", 10, 30, 11, 50)
+
+        val plan = planner.plan(Instant.parse("2026-09-21T10:35:00Z"), listOf(first, second), false, true)
+
+        assertTrue(plan.live is LiveNotificationState.Current)
+        assertEquals(second, plan.live?.occurrence)
+        assertEquals(Instant.parse("2026-09-21T11:50:00Z"), plan.nextEvaluationAt)
+    }
+
+    @Test fun delayedBackgroundCheckRemovesFinishedClassAndPlansTomorrow() {
+        val today = occurrence("Math", 9, 0, 10, 20)
+        val tomorrow = occurrence("Physics", 9, 0, 10, 20, date.plusDays(1))
+
+        val plan = planner.plan(Instant.parse("2026-09-21T10:35:00Z"), listOf(today, tomorrow), false, true)
+
+        assertNull(plan.live)
+        assertEquals(Instant.parse("2026-09-22T07:00:00Z"), plan.nextEvaluationAt)
+    }
+
     @Test fun gapLongerThanTwoHoursTemporarilyRemovesLiveNotification() {
         val first = occurrence("Math", 9, 0, 10, 0)
         val second = occurrence("Physics", 12, 1, 13, 0)
