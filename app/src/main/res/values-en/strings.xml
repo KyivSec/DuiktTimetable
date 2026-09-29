@@ -113,8 +113,8 @@
     <string name="error_load_groups">Could not load the group list</string>
     <string name="error_load_teachers">Could not load the teacher list</string>
     <string name="error_load_students">Could not load the student list</string>
-    <string name="error_offline">Could not retrieve the timetable because of a network connection problem. Check your internet connection—the issue is likely on your side. Showing the saved timetable.</string>
-    <string name="error_timeout">The timetable website did not respond in time. The issue is likely on the website’s side.</string>
+    <string name="error_offline">Could not retrieve the timetable because of a network connection problem. Check your internet connection. If you’re using Wi-Fi, try switching to mobile data and retrying. Showing the saved timetable.</string>
+    <string name="error_timeout">The timetable website did not respond in time. If you’re using Wi-Fi, try switching to mobile data and retrying.</string>
     <string name="error_http">The timetable website returned error %1$d. The issue is likely on the website’s side.</string>
     <string name="error_rejected_session">The timetable website rejected the session. The issue is likely on the website’s side. Try again.</string>
     <string name="error_source_format">The timetable website’s response format changed. The issue is on the website’s side.</string>
